@@ -18,7 +18,7 @@
 `security-review`, `engineering:deploy-checklist`.
 
 ## Antes de começar (decisões)
-Quais domínios secundários comprar · quantas caixas por domínio · Google Workspace, Microsoft 365 ou SMTP.
+Caixas SMTP podem ser criadas nas contas cPanel (HostGator) ou Plesk (Locaweb); conferir o limite de envios por hora do plano. Quais domínios secundários comprar · quantas caixas por domínio · Google Workspace, Microsoft 365 ou SMTP.
 
 ## Como conferir que deu certo
 ```bash

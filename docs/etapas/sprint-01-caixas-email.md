@@ -19,7 +19,7 @@
 `claude-api`, `security-review`, `context7`.
 
 ## Antes de começar
-- **`docs/LGPD.md` criado (F10).**
+- LGPD adiada até a comercialização (decisão do dono). Mantém-se o registro de conformidade e o descadastro.
 - Decidir: Gmail em Workspace da VIA (consentimento "Interno", F12) ou IMAP com senha de app.
 - Ter uma conta de teste ou um `.mbox` de amostra (F17).
 

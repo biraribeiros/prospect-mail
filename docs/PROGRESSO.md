@@ -6,14 +6,14 @@ Leia também: [VALIDACAO_DO_PLANO.md](VALIDACAO_DO_PLANO.md) (correções aprova
 |---|---|---|---|
 | Planejamento e validação | ✅ feito | main | Docs criados; correções F1–F17 aprovadas e aplicadas (Prompt Mestre v3.1) |
 | 0 Fundação | ⬜ | | |
-| 1 Caixas de email | ⬜ | | Pré-requisito: `docs/LGPD.md` |
+| 1 Caixas de email | ⬜ | | LGPD adiada até comercialização |
 | 2a Empresas | ⬜ | | |
 | 2b Sinais | ⬜ | | Decisão: fonte de vagas |
 | 3 Duplicados | ⬜ | | |
-| 4 Validar emails | ⬜ | | Pré-requisito: VPS com porta 25; decisão Reacher |
+| 4 Validar emails | ⬜ | | Começa com API paga; Reacher só com VPS |
 | 5a Enriquecimento | ⬜ | | |
 | 5b Inteligência | ⬜ | | |
-| 6a Envio: cadastro | ⬜ | | Decisões: domínios, provedor de caixas |
+| 6a Envio: cadastro | ⬜ | | Caixas SMTP via cPanel/Plesk; decidir domínios |
 | 6b Envio: agenda | ⬜ | | |
 | 7 Mensagens | ⬜ | | |
 | 8 Respostas e CRM | ⬜ | | Decisão: qual CRM |
@@ -21,4 +21,5 @@ Leia também: [VALIDACAO_DO_PLANO.md](VALIDACAO_DO_PLANO.md) (correções aprova
 | 10 Produção | ⬜ | | |
 
 ## Decisões registradas
-_(nenhuma ainda)_
+- 04/11/2026: LGPD adiada até comercialização.
+- 04/11/2026: sem VPS agora; caixas de envio nas hospedagens cPanel/Plesk existentes; Etapa 4 com API paga.

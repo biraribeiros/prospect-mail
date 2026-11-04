@@ -33,3 +33,7 @@
 
 ## Decisões que só você pode tomar
 Domínios secundários · provedor de caixas (Google/Microsoft/SMTP) · Maps (Places ou Apify) · Reacher (AGPL ou comercial) · qual CRM e qual webhook · se o Prospector vira produto SaaS · quem revisa a LGPD.
+
+## Decisões do dono (04/11/2026)
+- **LGPD (F10):** adiada até a comercialização. Uso interno mantém registro de conformidade e descadastro.
+- **Hospedagem (F14/F15/F18):** há Locaweb (revenda Plesk) e HostGator (cPanel). Servem para domínio secundário e caixas SMTP de envio. **Não** servem para rodar o sistema (precisa de Docker) nem para o Reacher (porta 25). Etapa 4 começa com API paga de verificação.

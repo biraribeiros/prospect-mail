@@ -17,14 +17,15 @@
 - **F9:** criptografia com `MultiFernet` (rotação de chave).
 
 **Dependências e riscos**
-- **F10:** criar `docs/LGPD.md` (teste de legítimo interesse, aviso e opt-out) **antes do Sprint 1**.
+- **F10 (adiada, decisão do dono em 04/11/2026):** `docs/LGPD.md` fica para a fase de comercialização. Uso interno: manter `compliance_record`, descadastro imediato e retenção limitada.
 - **F11:** vagas atrás de adaptador. Começar por RSS e páginas "trabalhe conosco". LinkedIn/Indeed/Catho só por fornecedor licenciado.
 - **F12:** Gmail `gmail.readonly` é escopo restrito. Usar tela de consentimento "Interna" (Workspace da VIA) — confirmar na doc do Google. Caixas de terceiros: IMAP com senha de app.
 - **F13:** manter ARQ, isolado em `workers/queue.py`; registrar ADR-003 com plano de troca (SAQ/Streaq).
-- **F14:** contratar o VPS e pedir a liberação da porta 25 **antes do Sprint 4**. Em dev, Reacher é simulado.
-- **F15:** a decisão Reacher AGPL × comercial é necessária **antes do Sprint 4**.
+- **F14 (revisada):** sem VPS por enquanto. A hospedagem compartilhada (cPanel/Plesk: Locaweb, HostGator) **não roda** Docker/Postgres/Redis nem libera porta 25. O Sprint 4 começa com API paga (MillionVerifier/ZeroBounce); Reacher entra quando houver servidor com porta 25.
+- **F15 (revisada):** a decisão Reacher AGPL × comercial só é necessária quando houver VPS.
 - **F16:** meta de carga do Sprint 10 é definida depois de medir o gargalo SMTP (teste com latência simulada).
 - **F17:** testes de caixa usam conta de teste ou `.mbox` de amostra.
+- **F18 (novo):** as contas cPanel/Plesk (Locaweb, HostGator) servem como **caixas SMTP do domínio secundário** no Sprint 6a (SPF/DKIM/DMARC pelo painel). Respeitar os limites de envio por hora de cada plano; o app roda na sua máquina (Docker Desktop) até a produção.
 
 ---
 

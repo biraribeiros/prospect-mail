@@ -17,8 +17,8 @@
 `engineering:testing-strategy`, `context7`.
 
 ## Antes de começar
-- **Decisão: Reacher AGPL (uso interno) ou comercial (F15).**
-- **VPS contratado e pedido de liberação da porta 25 já feito (F14).** No seu PC a porta 25 não funciona: em desenvolvimento o Reacher é simulado.
+- **Sem VPS por enquanto:** a etapa começa com API paga (MillionVerifier ou ZeroBounce). O Reacher entra quando houver servidor com porta 25 (decidir então AGPL × comercial).
+- Hospedagem compartilhada (cPanel/Plesk) **não** serve para o Reacher. No seu PC a porta 25 não funciona.
 
 ## Como conferir que deu certo
 ```bash
