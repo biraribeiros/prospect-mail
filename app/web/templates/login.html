@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Entrar · Prospector{% endblock %}
+{% block content %}
+<div class="login card">
+  <h1>Prospector</h1>
+  <p class="sub">Entre para continuar.</p>
+  {% if error %}<div class="msg err">{{ error }}</div>{% endif %}
+  <form method="post" action="/login">
+    <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email" value="{{ email or '' }}" required autofocus autocomplete="username">
+    <label for="senha">Senha</label>
+    <input type="password" id="senha" name="senha" required autocomplete="current-password">
+    <div class="actions"><button class="btn primary">Entrar</button></div>
+  </form>
+</div>
+{% endblock %}

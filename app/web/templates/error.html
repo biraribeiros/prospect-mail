@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="login card">
+  <h1>{{ code }}</h1>
+  <p>{% if code == 404 %}Não encontramos esta página.{% else %}{{ detail }}{% endif %}</p>
+  <a class="btn" href="/">Voltar ao início</a>
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Importar e exportar · Prospector{% endblock %}
+{% block content %}
+<h1>Importar e exportar planilhas</h1>
+<p class="sub">Use arquivos CSV (o Excel salva nesse formato). Importar o mesmo arquivo duas vezes não duplica nada.</p>
+{% if error %}<div class="msg err">{{ error }}</div>{% endif %}
+
+<div class="grid">
+  <form class="card" method="post" action="/configuracoes/importar/empresas" enctype="multipart/form-data">
+    <h3>Importar empresas</h3>
+    <p>Colunas: {{ col_empresas|join(", ") }}</p>
+    <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+    <p><a href="/configuracoes/modelo/empresas.csv">Baixar planilha modelo</a></p>
+    <input type="file" name="file" accept=".csv,text/csv" required>
+    {% if ctx.can_edit %}<div class="actions"><button class="btn primary">Importar empresas</button></div>{% endif %}
+  </form>
+  <form class="card" method="post" action="/configuracoes/importar/contatos" enctype="multipart/form-data">
+    <h3>Importar contatos</h3>
+    <p>Colunas: {{ col_contatos|join(", ") }}</p>
+    <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+    <p><a href="/configuracoes/modelo/contatos.csv">Baixar planilha modelo</a></p>
+    <input type="file" name="file" accept=".csv,text/csv" required>
+    {% if ctx.can_edit %}<div class="actions"><button class="btn primary">Importar contatos</button></div>{% endif %}
+  </form>
+</div>
+
+<h2>Exportar</h2>
+<div class="row"><a class="btn" href="/exportar/empresas.csv">Baixar empresas (CSV)</a><a class="btn" href="/exportar/contatos.csv">Baixar contatos (CSV)</a></div>
+{% endblock %}

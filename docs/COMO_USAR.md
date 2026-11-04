@@ -17,6 +17,11 @@ Abra uma sessão nova e escreva exatamente:
 - Conta GitHub (já configurada).
 - Mais adiante: domínio secundário para envio, caixas de email, chave da API Claude.
 
+## Ligar e desligar o sistema
+- **Ligar:** abra o Docker Desktop e dê dois cliques em `iniciar.bat` (ou rode `docker compose up -d`). Acesse http://localhost:8000.
+- **Primeira vez:** copie `.env.example` para `.env`, troque as senhas e gere as chaves (as instruções estão dentro do arquivo). O email e a senha do primeiro acesso são `ADMIN_EMAIL` e `ADMIN_PASSWORD` do `.env`.
+- **Desligar:** `docker compose down` (os dados ficam guardados).
+
 ## Se algo der errado
 - Tela não abre: rode `docker compose ps` e envie a saída para a IA.
 - Dúvida de termo: [GLOSSARIO.md](GLOSSARIO.md).

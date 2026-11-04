@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Perfil · Prospector{% endblock %}
+{% block content %}
+<h1>{{ "Editar perfil" if editing else "Novo perfil" }}</h1>
+<p class="sub">Preencha só o que importa. Campos vazios não restringem a busca.</p>
+{% for e in errors %}<div class="msg err">{{ e }}</div>{% endfor %}
+<form method="post" action="{{ '/configuracoes/icp/%d' % icp.id if editing else '/configuracoes/icp' }}" class="card">
+  <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+  <label for="nome">Nome do perfil</label>
+  <input type="text" id="nome" name="nome" value="{{ icp.nome if icp else '' }}" required>
+  <label for="cnaes">CNAEs</label>
+  <p class="hint">Atividade das empresas. Um por linha ou separados por vírgula. Ex.: 70.20-4</p>
+  <textarea id="cnaes" name="cnaes">{{ icp.cnaes|join("\n") if icp else "" }}</textarea>
+  <label for="ufs">Estados (UF)</label>
+  <p class="hint">Ex.: MG, SP</p>
+  <input type="text" id="ufs" name="ufs" value="{{ icp.ufs|join(', ') if icp else '' }}">
+  <label for="municipios">Cidades</label>
+  <input type="text" id="municipios" name="municipios" value="{{ icp.municipios|join(', ') if icp else '' }}">
+  <label for="portes">Porte das empresas</label>
+  <p class="hint">Use MEI, ME, EPP ou DEMAIS.</p>
+  <input type="text" id="portes" name="portes" value="{{ icp.portes|join(', ') if icp else '' }}">
+  <label for="termos_maps">Termos de busca no Google Maps</label>
+  <p class="hint">Ex.: clínica odontológica, escritório de contabilidade</p>
+  <input type="text" id="termos_maps" name="termos_maps" value="{{ icp.termos_maps|join(', ') if icp else '' }}">
+  <label>Departamentos que queremos alcançar</label>
+  <div class="checks">
+    {% for d in deptos %}<label><input type="checkbox" name="departamentos_alvo" value="{{ d }}" {{ 'checked' if icp and d in icp.departamentos_alvo }}> {{ d }}</label>{% endfor %}
+  </div>
+  <div class="actions row"><button class="btn primary">Salvar</button><a class="btn" href="/configuracoes/icp">Cancelar</a></div>
+</form>
+{% endblock %}

@@ -2,7 +2,13 @@
 
 Plataforma que **encontra empresas, confere os dados, descobre por que abordá-las agora e envia mensagens com aprovação humana**. Primeiro cliente: Agência VIA.
 
-> **Status:** planejamento validado — nenhum código escrito ainda. Veja [docs/PROGRESSO.md](docs/PROGRESSO.md).
+> **Status:** Etapa 0 (Fundação) pronta. Veja [docs/PROGRESSO.md](docs/PROGRESSO.md).
+
+## Rodar no seu computador
+1. Abra o **Docker Desktop**.
+2. Copie `.env.example` para `.env` e preencha as senhas (ou use `iniciar.bat` depois de criar o `.env`).
+3. Execute `docker compose up -d --build`.
+4. Painel: http://localhost:8000 · Caixa de emails de teste: http://localhost:8025
 
 ## Por onde começar (leigo)
 1. Leia [docs/COMO_USAR.md](docs/COMO_USAR.md) (5 min).

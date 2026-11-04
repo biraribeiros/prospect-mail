@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Prospector{% endblock %}</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+</head>
+<body hx-headers='{"X-CSRF-Token": "{{ csrf(request) }}"}'>
+{% if ctx %}
+<header class="top"><div class="bar">
+  <a class="logo" href="/">Prospector</a>
+  <nav>
+    {% set itens = [("hunter","Hunter"),("filtro","Filtro"),("inteligencia","Inteligência"),("disparo","Disparo"),("configuracoes","Configurações")] %}
+    {% for slug, nome in itens %}<a href="/{{ slug }}" class="{{ 'on' if ativo == slug }}">{{ nome }}</a>{% endfor %}
+  </nav>
+  <div class="who">
+    <span class="dry" title="Nenhum email real é enviado nesta fase">modo seguro</span>
+    <a href="/workspaces">{{ ctx.workspace.nome }}</a>
+    <form method="post" action="/logout"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn small">Sair</button></form>
+  </div>
+</div></header>
+{% endif %}
+<main>
+  {% for f in pop_flash(request) %}<div class="msg {{ f.kind }}">{{ f.msg }}</div>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

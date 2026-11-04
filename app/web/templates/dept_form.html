@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Departamento · Prospector{% endblock %}
+{% block content %}
+<h1>{{ "Editar departamento" if editing else "Novo departamento" }}</h1>
+{% for e in errors %}<div class="msg err">{{ e }}</div>{% endfor %}
+<form method="post" action="{{ '/configuracoes/departamentos/%d' % dept.id if editing else '/configuracoes/departamentos' }}" class="card">
+  <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+  <label for="nome">Nome</label>
+  <input type="text" id="nome" name="nome" value="{{ dept.nome if dept else '' }}" required>
+  <label for="email_patterns">Padrões de email</label>
+  <p class="hint">Como os emails desta área costumam começar. Ex.: rh@, recrutamento@</p>
+  <input type="text" id="email_patterns" name="email_patterns" value="{{ dept.email_patterns|join(', ') if dept else '' }}">
+  <label for="cargos">Cargos comuns</label>
+  <p class="hint">Um por linha ou separados por vírgula.</p>
+  <textarea id="cargos" name="cargos">{{ dept.cargos|join("\n") if dept else "" }}</textarea>
+  <label for="necessidades">Necessidades previstas</label>
+  <p class="hint">Uma por linha, assim: <b>Necessidade | importância de 1 a 5 | palavras-chave</b><br>Ex.: Vídeo institucional | 5 | video</p>
+  <textarea id="necessidades" name="necessidades" rows="6">{{ needs_text }}</textarea>
+  <div class="actions row"><button class="btn primary">Salvar</button><a class="btn" href="/configuracoes/departamentos">Cancelar</a></div>
+</form>
+{% endblock %}
