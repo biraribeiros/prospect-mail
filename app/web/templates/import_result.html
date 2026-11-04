@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Resultado da importação · Prospector{% endblock %}
+{% block content %}
+<h1>Importação de {{ tipo }}</h1>
+{% if res.arquivo_repetido %}
+<div class="msg">Este arquivo idêntico já foi importado antes. Nada foi alterado.</div>
+{% else %}
+<div class="grid">
+  <div class="card"><div class="num">{{ res.total }}</div><p>linhas lidas</p></div>
+  <div class="card"><div class="num">{{ res.criados }}</div><p>novos</p></div>
+  <div class="card"><div class="num">{{ res.atualizados }}</div><p>atualizados</p></div>
+  <div class="card"><div class="num">{{ res.erros|length }}</div><p>com problema</p></div>
+</div>
+{% if res.erros %}
+<h2>Linhas com problema (não foram importadas)</h2>
+<table><tr><th>Linha</th><th>Motivo</th></tr>
+{% for linha, motivo in res.erros[:200] %}<tr><td>{{ linha }}</td><td>{{ motivo }}</td></tr>{% endfor %}</table>
+{% endif %}
+{% endif %}
+<div class="actions row"><a class="btn primary" href="/configuracoes/importar">Voltar</a></div>
+{% endblock %}

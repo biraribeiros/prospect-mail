@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Olá! Bem-vindo ao {{ ctx.workspace.nome }}</h1>
+<p class="sub">Aqui você encontra empresas, confere os contatos e envia mensagens com a sua aprovação.</p>
+
+<div class="grid">
+  <div class="card"><div class="num">{{ stats.icps }}</div><p>perfis de cliente ideal</p></div>
+  <div class="card"><div class="num">{{ stats.departamentos }}</div><p>departamentos</p></div>
+  <div class="card"><div class="num">{{ stats.empresas }}</div><p>empresas</p></div>
+  <div class="card"><div class="num">{{ stats.contatos }}</div><p>contatos</p></div>
+</div>
+
+<h2>Primeiros passos</h2>
+<ol class="steps">
+  <li>Crie um <a href="/configuracoes/icp">perfil de cliente ideal</a> (setor, cidade e porte das empresas que você quer).</li>
+  <li>Revise os <a href="/configuracoes/departamentos">departamentos</a> e o que cada um costuma precisar.</li>
+  <li>Se já tem uma lista, <a href="/configuracoes/importar">importe uma planilha</a> de empresas ou contatos.</li>
+</ol>
+
+<h2>O que vem a seguir</h2>
+<div class="grid">
+  {% for slug, (titulo, sprint, texto) in secoes.items() %}
+  <a class="card" href="/{{ slug }}" style="text-decoration:none;color:inherit">
+    <h3>{{ titulo }}</h3><p>{{ texto }}</p><p style="margin-top:8px"><span class="tag">{{ sprint }} · em construção</span></p>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Escolher workspace · Prospector{% endblock %}
+{% block content %}
+<div class="login card">
+  <h1>Escolha o workspace</h1>
+  <p class="sub">Cada workspace tem seus próprios dados, separados dos demais.</p>
+  {% for ws, papel in workspaces %}
+  <form method="post" action="/workspaces" class="row" style="margin:8px 0">
+    <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+    <input type="hidden" name="workspace_id" value="{{ ws.id }}">
+    <button class="btn primary">{{ ws.nome }}</button> <span class="tag">{{ papel }}</span>
+  </form>
+  {% else %}
+  <p>Você ainda não tem acesso a nenhum workspace. Peça a um administrador.</p>
+  {% endfor %}
+</div>
+{% endblock %}

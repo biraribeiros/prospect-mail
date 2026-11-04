@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Departamentos · Prospector{% endblock %}
+{% block content %}
+<div class="row" style="justify-content:space-between">
+  <div><h1>Departamentos</h1>
+  <p class="sub">Cada área de uma empresa tem cargos e necessidades diferentes. Isso guia quem abordar e com qual oferta.</p></div>
+  {% if ctx.can_edit %}<a class="btn primary" href="/configuracoes/departamentos/novo">Novo departamento</a>{% endif %}
+</div>
+<table>
+  <tr><th>Departamento</th><th>Padrões de email</th><th>Necessidades</th><th></th></tr>
+  {% for d in deptos %}
+  <tr>
+    <td><a href="/configuracoes/departamentos/{{ d.id }}">{{ d.nome }}</a></td>
+    <td>{{ d.email_patterns|join(", ") or "—" }}</td>
+    <td>{{ d.necessidades_previstas|length }}</td>
+    <td>{% if ctx.can_edit %}<button class="btn small danger" hx-post="/configuracoes/departamentos/{{ d.id }}/excluir"
+        hx-confirm="Excluir “{{ d.nome }}”?" hx-target="closest tr" hx-swap="outerHTML">Excluir</button>{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

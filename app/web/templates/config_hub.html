@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Configurações · Prospector{% endblock %}
+{% block content %}
+<h1>Configurações</h1>
+<p class="sub">Cadastros que orientam toda a busca e as mensagens.</p>
+<div class="grid">
+  <a class="card" href="/configuracoes/icp" style="text-decoration:none;color:inherit"><h3>Perfis de cliente ideal</h3><p>Setor, cidade e porte das empresas que você quer alcançar.</p></a>
+  <a class="card" href="/configuracoes/departamentos" style="text-decoration:none;color:inherit"><h3>Departamentos</h3><p>Quem decide em cada área e o que cada área costuma precisar.</p></a>
+  <a class="card" href="/configuracoes/importar" style="text-decoration:none;color:inherit"><h3>Importar e exportar planilhas</h3><p>Traga listas de empresas e contatos (CSV) ou baixe o que já está aqui.</p></a>
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Perfis de cliente ideal · Prospector{% endblock %}
+{% block content %}
+<div class="row" style="justify-content:space-between">
+  <div><h1>Perfis de cliente ideal</h1>
+  <p class="sub">Um perfil descreve o tipo de empresa que você quer encontrar (também chamado de ICP).</p></div>
+  {% if ctx.can_edit %}<a class="btn primary" href="/configuracoes/icp/novo">Novo perfil</a>{% endif %}
+</div>
+<table>
+  <tr><th>Nome</th><th>CNAEs</th><th>UFs</th><th>Portes</th><th></th></tr>
+  {% for i in icps %}
+  <tr>
+    <td><a href="/configuracoes/icp/{{ i.id }}">{{ i.nome }}</a></td>
+    <td>{{ i.cnaes|join(", ") or "—" }}</td><td>{{ i.ufs|join(", ") or "—" }}</td><td>{{ i.portes|join(", ") or "—" }}</td>
+    <td>{% if ctx.can_edit %}<button class="btn small danger" hx-post="/configuracoes/icp/{{ i.id }}/excluir"
+        hx-confirm="Excluir o perfil “{{ i.nome }}”?" hx-target="closest tr" hx-swap="outerHTML">Excluir</button>{% endif %}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5">Nenhum perfil ainda. Comece criando o primeiro.</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}
