@@ -1,10 +1,10 @@
 # Progresso
 
-Leia também: [VALIDACAO_DO_PLANO.md](VALIDACAO_DO_PLANO.md) (correções propostas ao plano).
+Leia também: [VALIDACAO_DO_PLANO.md](VALIDACAO_DO_PLANO.md) (correções aprovadas, já no Prompt Mestre v3.1).
 
 | Etapa | Status | Branch | Observações |
 |---|---|---|---|
-| Planejamento e validação | ✅ feito | main | Docs criados; aguardando aprovação das correções F1–F17 |
+| Planejamento e validação | ✅ feito | main | Docs criados; correções F1–F17 aprovadas e aplicadas (Prompt Mestre v3.1) |
 | 0 Fundação | ⬜ | | |
 | 1 Caixas de email | ⬜ | | Pré-requisito: `docs/LGPD.md` |
 | 2a Empresas | ⬜ | | |

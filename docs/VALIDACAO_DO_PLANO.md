@@ -1,6 +1,6 @@
 # Validação do plano (Prompt Mestre v3.0)
 
-**Veredito:** plano sólido e bem pensado. Tem **1 erro bloqueante**, **4 ajustes importantes** e alguns alertas. As correções abaixo estão **propostas — valem após aprovação** e serão aplicadas em `PROMPT_MESTRE.md` (v3.1).
+**Veredito:** plano sólido e bem pensado. Tem **1 erro bloqueante**, **4 ajustes importantes** e alguns alertas. Correções **aprovadas em 04/11/2026** e aplicadas em `PROMPT_MESTRE.md` (v3.1).
 
 ## Erros de sequência (corrigir)
 | # | Problema | Correção proposta |

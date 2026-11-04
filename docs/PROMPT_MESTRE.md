@@ -1,3 +1,33 @@
+# PROSPECTOR B2B — Prompt Mestre v3.1
+
+> **v3.1 (04/11/2026):** correções F1–F17 aprovadas. Elas **têm prioridade** sobre o texto da v3.0 logo abaixo. Justificativas em [VALIDACAO_DO_PLANO.md](VALIDACAO_DO_PLANO.md). Etapas em linguagem simples: [etapas/](etapas/).
+
+## ERRATA v3.1 (vale acima de tudo)
+
+**Sequência e banco**
+- **F1/F3:** o Sprint 0 cria também `company`, `contact`, `evidence`, `verification`, `contact_role`, `app_user`, `workspace_member`. Os Sprints 2 e 5b só **adicionam colunas**.
+- **F2:** `mailbox_account` é criada no Sprint 1.
+- **F4:** `api_cache` nasce no Sprint 2a, `webhook_log` e `message_template` nos Sprints 7–8.
+- **F5:** os sprints passam a ser 0, 1, 2a, 2b, 3, 4, 5a, 5b, 6a, 6b, 7, 8, 9, 10 (um por sessão). 6a = cadastro, DNS, guard, aquecimento; 6b = agendador, cabeçalhos, bounces, disjuntor.
+
+**Segurança**
+- **F6:** `guard.py` **deriva** o domínio principal das caixas lidas pelo Hunter + lista fixa do workspace. `sending_domain.tipo` é imutável após o primeiro envio. Teste obrigatório tentando burlar.
+- **F7:** login com argon2, CSRF nos formulários HTMX, cookie `HttpOnly/Secure/SameSite` (critério de aceite do Sprint 0).
+- **F8:** teste de isolamento: workspace A nunca enxerga dados do B.
+- **F9:** criptografia com `MultiFernet` (rotação de chave).
+
+**Dependências e riscos**
+- **F10:** criar `docs/LGPD.md` (teste de legítimo interesse, aviso e opt-out) **antes do Sprint 1**.
+- **F11:** vagas atrás de adaptador. Começar por RSS e páginas "trabalhe conosco". LinkedIn/Indeed/Catho só por fornecedor licenciado.
+- **F12:** Gmail `gmail.readonly` é escopo restrito. Usar tela de consentimento "Interna" (Workspace da VIA) — confirmar na doc do Google. Caixas de terceiros: IMAP com senha de app.
+- **F13:** manter ARQ, isolado em `workers/queue.py`; registrar ADR-003 com plano de troca (SAQ/Streaq).
+- **F14:** contratar o VPS e pedir a liberação da porta 25 **antes do Sprint 4**. Em dev, Reacher é simulado.
+- **F15:** a decisão Reacher AGPL × comercial é necessária **antes do Sprint 4**.
+- **F16:** meta de carga do Sprint 10 é definida depois de medir o gargalo SMTP (teste com latência simulada).
+- **F17:** testes de caixa usam conta de teste ou `.mbox` de amostra.
+
+---
+
 # PROSPECTOR B2B — Prompt Mestre v3.0
 ### Plataforma de Inteligência Comercial: Hunter · Filtro · Inteligência · Disparo
 
