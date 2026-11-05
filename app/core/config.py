@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     # Etapa 6 — envio
     unsubscribe_secret: str = ""  # se vazio, usa SECRET_KEY
     public_base_url: str = "http://localhost:8000"
-    rspamd_url: str = "http://rspamd:11334"
+    rspamd_url: str = "http://rspamd:11333"
     breaker_bounce_rate: float = 0.03
     breaker_min_sent: int = 20
     # Etapa 8 — CRM externo (webhook). Vazio = os eventos ficam registrados como "sem_destino".

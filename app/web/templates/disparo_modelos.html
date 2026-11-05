@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Modelos de texto · Prospector{% endblock %}
+{% block content %}
+<p><a href="/disparo/mensagens">← Mensagens</a></p>
+<h1>Modelos de texto</h1>
+<p class="sub">Se você não criar modelos, o sistema usa textos padrão. Variáveis disponíveis: {% for v in variaveis %}<code>{{ "{{" ~ v ~ "}}" }}</code> {% endfor %}. Variável vazia bloqueia a mensagem.</p>
+<table><tr><th>Nome</th><th>Objetivo</th><th>Assunto</th><th></th></tr>
+{% for t in rows %}<tr><td>{{ t.nome }}</td><td>{{ t.objetivo|replace("_", " ") }}</td><td>{{ t.assunto }}</td>
+<td>{% if ctx.can_edit %}<form method="post" action="/disparo/modelos/{{ t.id }}/excluir"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn small danger">Excluir</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="4">Nenhum modelo próprio ainda.</td></tr>{% endfor %}</table>
+{% if ctx.can_edit %}
+<h2>Novo modelo</h2>
+<form method="post" action="/disparo/modelos" class="card"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+  <label for="nome">Nome</label><input type="text" id="nome" name="nome" required>
+  <label for="objetivo">Objetivo</label><select id="objetivo" name="objetivo"><option value="sonda">Sonda (primeiro contato)</option><option value="seguimento">Seguimento (dia 4)</option><option value="ultimo_toque">Último toque (dia 10)</option></select>
+  <label for="assunto">Assunto</label><input type="text" id="assunto" name="assunto" required>
+  <label for="corpo">Texto</label><textarea id="corpo" name="corpo" rows="8" required></textarea>
+  <div class="actions"><button class="btn primary">Salvar modelo</button></div>
+</form>{% endif %}
+{% endblock %}

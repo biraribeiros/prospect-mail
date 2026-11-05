@@ -135,3 +135,10 @@ async def dispatch_all_job(ctx) -> dict:
         r = await dispatch_workspace_job(ctx, ws)
         total["enviadas"] += r.get("enviadas", 0)
     return total
+
+
+async def compose_job(ctx, ws: int) -> dict:
+    from app.disparo.compose import run_compose
+
+    with SessionLocal() as session:
+        return run_compose(session, ws)

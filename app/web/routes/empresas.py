@@ -19,11 +19,11 @@ from app.workers.queue import enqueue
 router = APIRouter(prefix="/hunter")
 PAGE = 50
 TIPOS = ("coleta_cnpj", "coleta_places", "coleta_sites", "coleta_sinais", "resolucao",
-         "validacao_emails", "enriquecimento", "hipoteses")
+         "validacao_emails", "enriquecimento", "hipoteses", "mensagens")
 NOMES = {"coleta_cnpj": "Base CNPJ", "coleta_places": "Google Places", "coleta_sites": "Leitura de sites",
          "coleta_sinais": "Sinais comerciais", "resolucao": "Unificação de duplicados",
          "validacao_emails": "Validação de emails", "enriquecimento": "Enriquecimento e notas",
-         "hipoteses": "Hipóteses de oportunidade"}
+         "hipoteses": "Hipóteses de oportunidade", "mensagens": "Escrita de mensagens"}
 
 
 def _icps(ctx: Ctx) -> list[IcpProfile]:
