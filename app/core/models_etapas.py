@@ -54,6 +54,7 @@ class Offer(Base):
     descricao: Mapped[str] = mapped_column(Text, default="")
     faixa_preco: Mapped[str | None] = mapped_column(Text)
     cases: Mapped[list[Any]] = mapped_column(JSONB, server_default=EMPTY_LIST)
+    tags: Mapped[list[str]] = mapped_column(TextArray, server_default=EMPTY_ARRAY)  # liga a "ofertas_relacionadas" das necessidades
     tipos_sinal: Mapped[list[str]] = mapped_column(TextArray, server_default=EMPTY_ARRAY)
     departamentos: Mapped[list[str]] = mapped_column(TextArray, server_default=EMPTY_ARRAY)
     ativo: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"))

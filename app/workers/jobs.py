@@ -84,6 +84,13 @@ async def enrich_job(ctx, ws: int) -> dict:
         return run_enrichment(session, ws, fetcher=f)
 
 
+async def hypotheses_job(ctx, ws: int) -> dict:
+    from app.intel.hypothesis import run_hypotheses
+
+    with SessionLocal() as session:
+        return run_hypotheses(session, ws)
+
+
 async def scan_mailbox_job(ctx, mailbox_id: int) -> dict:
     with SessionLocal() as session:
         mailbox = session.get(MailboxAccount, mailbox_id)

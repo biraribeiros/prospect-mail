@@ -1,0 +1,21 @@
+<table>
+  <tr><th>Nota</th><th>Empresa / contato</th><th>Por quê (com prova)</th><th>Oferta</th><th>Situação</th>{% if acoes %}<th></th>{% endif %}</tr>
+  {% for h, c, ct, o in (top if top is defined else rows) %}
+  <tr>
+    <td><b>{{ h.nota }}</b></td>
+    <td><a href="/hunter/empresas/{{ c.id }}">{{ c.nome_fantasia or c.razao_social or c.dominio }}</a><br><span class="hint">{{ ct.nome_completo or ct.email }}{% if ct.cargo %} · {{ ct.cargo }}{% endif %}</span></td>
+    <td>{{ h.texto }}<br><span class="hint">{{ h.justificativa }}</span><br>
+      {% for e in h.evidencias if e.url %}<a href="{{ e.url|safe_url }}" target="_blank" rel="noopener noreferrer nofollow">ver prova ({{ e.fonte|replace("_", " ") }})</a>{% endfor %}</td>
+    <td>{{ o.nome }}</td>
+    <td><span class="tag">{{ h.status }}</span></td>
+    {% if acoes %}<td>
+      {% if h.status == "pendente" and ctx.papel in ("admin", "aprovador") %}
+      <form method="post" action="/inteligencia/hipoteses/{{ h.id }}/decidir">
+        <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+        <textarea name="texto" rows="3" style="width:100%">{{ h.texto }}</textarea>
+        <button class="btn small primary" name="acao" value="aprovar">Aprovar</button>
+        <button class="btn small danger" name="acao" value="rejeitar">Rejeitar</button>
+      </form>{% endif %}</td>{% endif %}
+  </tr>
+  {% else %}<tr><td colspan="6">Nenhuma hipótese ainda. Cadastre ofertas, colete sinais e clique em “Gerar hipóteses”.</td></tr>{% endfor %}
+</table>

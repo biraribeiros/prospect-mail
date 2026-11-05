@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Inteligência · Prospector{% endblock %}
+{% block content %}
+<h1>Inteligência</h1>
+<p class="sub">Responde “por que abordar esta empresa, esta pessoa, agora?” — com provas. Nenhuma mensagem é escrita sem uma hipótese aprovada por você.</p>
+<div class="grid">
+  <a class="card" href="/inteligencia/ofertas" style="text-decoration:none;color:inherit"><div class="num">{{ n_ofertas }}</div><h3>Ofertas</h3><p>O que a agência vende, com preço e cases reais.</p></a>
+  <a class="card" href="/inteligencia/hipoteses?status=pendente" style="text-decoration:none;color:inherit"><div class="num">{{ cont.get("pendente", 0) }}</div><h3>Aguardando aprovação</h3><p>Hipóteses geradas, esperando sua decisão.</p></a>
+  <a class="card" href="/inteligencia/hipoteses?status=aprovada" style="text-decoration:none;color:inherit"><div class="num">{{ cont.get("aprovada", 0) }}</div><h3>Aprovadas</h3><p>Prontas para virar mensagem.</p></a>
+  <a class="card" href="/configuracoes/departamentos" style="text-decoration:none;color:inherit"><h3>Necessidades por departamento</h3><p>Editáveis em Configurações.</p></a>
+</div>
+{% if ctx.can_edit %}
+<form method="post" action="/inteligencia/gerar" class="actions" style="margin:12px 0"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+  <button class="btn primary">Gerar hipóteses</button>
+  <span class="hint">Usa só sinais com link e ofertas compatíveis. Sem sinal e sem oferta, o contato fica “sem hipótese”.</span></form>
+{% endif %}
+<h2>Top 50 oportunidades</h2>
+{% include "_intel_tabela.html" %}
+<h2>Execuções recentes</h2>
+{% include "_jobs_table.html" %}
+{% endblock %}

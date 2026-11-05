@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Hipóteses · Prospector{% endblock %}
+{% block content %}
+<p><a href="/inteligencia">← Inteligência</a></p>
+<h1>Fila de aprovação</h1>
+<p class="sub">Leia, ajuste o texto se quiser e aprove. Só hipóteses aprovadas viram mensagens.</p>
+<form method="get" class="row"><select name="status" onchange="this.form.submit()">
+  {% for k, n in [("pendente","Pendentes"),("aprovada","Aprovadas"),("rejeitada","Rejeitadas"),("","Todas")] %}<option value="{{ k }}" {{ "selected" if k == status_f }}>{{ n }}</option>{% endfor %}</select></form>
+{% set acoes = True %}
+{% include "_intel_tabela.html" %}
+{% endblock %}
