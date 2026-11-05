@@ -246,6 +246,9 @@ def _csv_stream(header: list[str], rows: Iterator[list]) -> Iterator[str]:
     yield buf.getvalue()
 
 
+csv_stream = _csv_stream  # uso público (ex.: exportação de contatos do Hunter)
+
+
 def export_companies(session: Session, ws: int) -> Iterator[str]:
     q = select(Company).where(Company.workspace_id == ws).order_by(Company.id)
     rows = ([getattr(c, col) for col in EMPRESA_COLUNAS] for c in session.scalars(q))
