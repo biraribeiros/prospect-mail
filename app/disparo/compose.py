@@ -186,6 +186,23 @@ def template_variations(session: Session, ws: int, vars_: dict[str, str]) -> lis
     return out
 
 
+def match_icp(session: Session, ws: int, company: Company) -> int | None:
+    """ICP (perfil de cliente ideal) a que a empresa pertence: UF, cidade e CNAE do perfil. Empate: o de menor id."""
+    from app.core.models import IcpProfile
+
+    cnae = "".join(ch for ch in (company.cnae_principal or "") if ch.isdigit())
+    for icp in session.scalars(select(IcpProfile).where(IcpProfile.workspace_id == ws).order_by(IcpProfile.id)):
+        if icp.ufs and (company.uf or "").upper() not in [u.upper() for u in icp.ufs]:
+            continue
+        if icp.municipios and (company.municipio or "").lower() not in [m.lower() for m in icp.municipios]:
+            continue
+        pref = ["".join(ch for ch in c if ch.isdigit()) for c in icp.cnaes]
+        if any(pref) and not any(cnae.startswith(p) for p in pref if p):
+            continue
+        return icp.id
+    return None
+
+
 def jaccard(a: str, b: str) -> float:
     sa, sb = set(re.findall(r"\w+", a.lower())), set(re.findall(r"\w+", b.lower()))
     return len(sa & sb) / len(sa | sb) if sa | sb else 0.0
@@ -230,8 +247,10 @@ def compose_for(session: Session, ws: int, h: Hypothesis, llm: LLMClient | None 
     if score >= SPAM_MAX:
         motivos.append(f"nota de spam alta ({score:.1f} no {origem}; precisa ser menor que {SPAM_MAX:.0f})")
     status = "bloqueada" if motivos else "rascunho"
-    common = dict(workspace_id=ws, contact_id=ct.id, company_id=company.id, hypothesis_id=h.id)
-    first = OutboundMessage(**common, passo=1, objetivo="sonda", assunto=pick.assunto, corpo=pick.corpo, status=status,
+    icp_id = match_icp(session, ws, company)
+    common = dict(workspace_id=ws, contact_id=ct.id, company_id=company.id, hypothesis_id=h.id, icp_id=icp_id)
+    letra = "ABC"[options.index(pick)] if pick in options and options.index(pick) < 3 else None  # variante do teste A/B
+    first = OutboundMessage(**common, passo=1, objetivo="sonda", variante=letra, assunto=pick.assunto, corpo=pick.corpo, status=status,
                             variacoes=[{"assunto": o.assunto, "corpo": o.corpo} for o in options], spam_score=score,
                             motivo="; ".join(motivos) or None)
     session.add(first)

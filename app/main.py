@@ -9,7 +9,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.core.config import get_settings
 from app.core.db import get_db
 from app.web.deps import LoginRequired, WEB_DIR, WorkspaceRequired, csrf_guard, render
-from app.web.routes import auth, config, csv_io, disparo, empresas, filtro, hunter, inteligencia, panel, public
+from app.web.routes import auth, config, csv_io, disparo, empresas, filtro, hunter, inteligencia, metricas, panel, public
 
 settings = get_settings()
 settings.check_production_safety()
@@ -64,5 +64,6 @@ app.include_router(empresas.router)
 app.include_router(filtro.router)
 app.include_router(inteligencia.router)
 app.include_router(disparo.router)
+app.include_router(metricas.router)
 app.include_router(public.router)
 app.include_router(panel.router)  # por último: tem rota genérica /{secao}

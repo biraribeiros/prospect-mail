@@ -170,3 +170,17 @@ async def poll_replies_job(ctx) -> dict:
             total["respostas"] += r["respostas"]
             total["bounces"] += r["bounces"]
     return total
+
+
+async def weekly_report_job(ctx) -> dict:
+    """Toda segunda-feira, resumo da semana por email para os administradores de cada workspace."""
+    from sqlalchemy import select
+
+    from app.core.models import Workspace
+    from app.metricas.queries import send_weekly_report
+
+    enviados = 0
+    with SessionLocal() as session:
+        for ws in session.scalars(select(Workspace.id)):
+            enviados += send_weekly_report(session, ws)
+    return {"emails": enviados}

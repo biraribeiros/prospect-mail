@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Métricas · Prospector{% endblock %}
+{% block content %}
+<h1>Métricas e aprendizado</h1>
+<p class="sub">Saber o que funciona, com qual segmento e qual oferta. <a href="/metricas/relatorio">Ver resumo semanal</a></p>
+
+<h2>1. Aquisição</h2>
+<div class="grid">
+  <div class="card"><div class="num">{{ aq.empresas }}</div><h3>Empresas</h3></div>
+  <div class="card"><div class="num">{{ aq.contatos }}</div><h3>Contatos</h3></div>
+  <div class="card"><div class="num">{{ aq.pct_validos }}%</div><h3>Emails válidos</h3><p>{{ aq.validos }} de {{ aq.emails }}</p></div>
+  <div class="card"><div class="num">US$ {{ "%.2f"|format(aq.custo_usd) }}</div><h3>Gasto com APIs</h3><p>{% if aq.custo_por_valido is not none %}US$ {{ aq.custo_por_valido }} por email válido{% else %}—{% endif %}</p></div>
+</div>
+<p class="hint">Contatos por origem: {% for o, n in aq.por_origem %}{{ o }} ({{ n }}){{ ", " if not loop.last }}{% else %}—{% endfor %}</p>
+
+<h2>2. Abordagem</h2>
+{% if ab.pausado %}<div class="msg err">Envio pausado: {{ ab.pausado.motivo }}</div>{% endif %}
+<div class="grid">
+  <div class="card"><div class="num">{{ ab.enviadas }}</div><h3>Emails enviados</h3><p>{{ ab.primeiros_contatos }} primeiros contatos</p></div>
+  <div class="card"><div class="num">{{ ab.taxa_bounce }}%</div><h3>Bounces</h3><p>{{ ab.bounces }} mensagens voltaram (limite do disjuntor: 3%)</p></div>
+  <div class="card"><div class="num">{{ ab.taxa_resposta }}%</div><h3>Taxa de resposta</h3><p>{{ ab.respostas }} pessoas responderam</p></div>
+  <div class="card"><div class="num">—</div><h3>Taxa de abertura</h3><p class="hint">⚠ {{ ab.aviso_abertura }}</p></div>
+</div>
+
+<h2>3. Conversão</h2>
+<table><tr><th>Etapa do funil</th><th>Quantidade</th><th></th></tr>
+{% set topo = cv.funil[0][1] or 1 %}
+{% for nome, n in cv.funil %}<tr><td>{{ nome }}</td><td>{{ n }}</td><td style="width:50%"><div style="background:var(--accent,#2563eb);height:12px;border-radius:6px;width:{{ (100 * n / topo)|round|int }}%"></div></td></tr>{% endfor %}</table>
+<p class="hint">Respostas por tipo: {% for k, n in cv.classes.items() %}{{ k|replace("_", " ") }} ({{ n }}){{ ", " if not loop.last }}{% else %}—{% endfor %}</p>
+
+<h2>4. Inteligência</h2>
+<p>Hipóteses aprovadas: <b>{{ it.pct_aprovacao }}%</b> das decididas ({{ it.hipoteses.get("aprovada", 0) }} aprovadas, {{ it.hipoteses.get("rejeitada", 0) }} rejeitadas, {{ it.hipoteses.get("pendente", 0) }} pendentes).</p>
+<table><tr><th>Oferta</th><th>Abordados</th><th>Responderam</th><th>Taxa</th></tr>
+{% for n, e, r, t in it.por_oferta %}<tr><td>{{ n }}</td><td>{{ e }}</td><td>{{ r }}</td><td>{{ t }}%</td></tr>{% else %}<tr><td colspan="4">Sem dados ainda.</td></tr>{% endfor %}</table>
+<table><tr><th>Tipo de sinal</th><th>Abordados</th><th>Responderam</th><th>Taxa</th></tr>
+{% for n, e, r, t in it.por_sinal %}<tr><td>{{ n|replace("_", " ") }}</td><td>{{ e }}</td><td>{{ r }}</td><td>{{ t }}%</td></tr>{% else %}<tr><td colspan="4">Sem dados ainda.</td></tr>{% endfor %}</table>
+
+<h2>Teste entre dois perfis (ICPs)</h2>
+<p class="sub">Critério: reunião marcada em até 21 dias após o primeiro email. Mínimo de {{ minimo }} abordados por perfil.</p>
+<form method="get" class="row">
+  <select name="a">{% for i in icps %}<option value="{{ i.id }}" {{ "selected" if i.id == sel_a }}>{{ i.nome }}</option>{% endfor %}</select>
+  <span>contra</span>
+  <select name="b">{% for i in icps %}<option value="{{ i.id }}" {{ "selected" if i.id == sel_b }}>{{ i.nome }}</option>{% endfor %}</select>
+  <label style="display:inline-flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" name="teste" value="sim" {{ "checked" if teste_flag }}> modo teste (ignora a janela de 21 dias)</label>
+  <button class="btn primary">Comparar</button>
+</form>
+{% if teste_icp %}
+<div class="card" style="margin-top:10px">
+  <table><tr><th>Perfil</th><th>Abordados</th><th>Reuniões em 21 dias</th><th>Taxa</th></tr>
+  {% for k in ("a", "b") %}{% set g = teste_icp[k] %}<tr><td>{{ g.nome }}</td><td>{{ g.abordados }}</td><td>{{ g.reunioes }}</td><td>{{ g.taxa }}%</td></tr>{% endfor %}</table>
+  <p><b>Veredito:</b> {{ teste_icp.veredito.texto }}</p>
+</div>
+{% endif %}
+
+<h2>Comparação A/B (assunto + abertura)</h2>
+<table><tr><th>Variante</th><th>Abordados</th><th>Responderam</th><th>Taxa</th></tr>
+{% for g, n, r, t in ab_test.grupos %}<tr><td>{{ g }}</td><td>{{ n }}</td><td>{{ r }}</td><td>{{ t }}%</td></tr>{% else %}<tr><td colspan="4">Sem dados ainda.</td></tr>{% endfor %}</table>
+{% if ab_test.veredito %}<p><b>Veredito:</b> {{ ab_test.veredito.texto }}</p>{% endif %}
+{% endblock %}
