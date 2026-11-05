@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Filtro · Prospector{% endblock %}
+{% block content %}
+<h1>Filtro</h1>
+<p class="sub">Confere se cada email existe (sem enviar nada) e dá notas de qualidade para cada contato.</p>
+{% if aviso %}<div class="msg err">{{ aviso }}</div>{% endif %}
+<div class="msg">{{ smtp_note }} Emails com mais de {{ dias }} dias são verificados de novo.</div>
+<div class="grid">
+  {% for k, nome, txt in [("valido","Válidos","O servidor confirmou o endereço."),("arriscado","Arriscados","Servidor aceita tudo, conta de função ou sem resposta conclusiva."),("invalido","Inválidos","O endereço não existe."),("bloqueado","Bloqueados","Descartáveis ou na lista de supressão."),("nao_verificado","Ainda não verificados","Aguardando a validação.")] %}
+  <a class="card" href="/filtro?status={{ k }}" style="text-decoration:none;color:inherit"><div class="num">{{ dist[k] }}</div><h3>{{ nome }}</h3><p>{{ txt }}</p></a>
+  {% endfor %}
+</div>
+{% if ctx.can_edit %}
+<div class="row" style="margin:14px 0;display:flex;gap:10px;flex-wrap:wrap">
+  <form method="post" action="/filtro/validar" class="card" style="flex:1;min-width:260px">
+    <h3>Validar emails</h3>
+    <p>Verificador: <b>{{ provedor if provedor != "nenhum" else "nenhum (só checagens locais)" }}</b>. Para ao primeiro problema: sintaxe → descartável → conta de função → servidor → SMTP → catch-all.</p>
+    <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+    <label for="lim">Máximo de emails</label><input type="text" id="lim" name="limite" value="500">
+    <label style="display:inline-flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" name="refazer" value="sim"> Refazer também os já verificados</label>
+    <div class="actions"><button class="btn primary">Validar</button></div>
+  </form>
+  <form method="post" action="/filtro/enriquecer" class="card" style="flex:1;min-width:260px">
+    <h3>Enriquecer e dar notas</h3>
+    <p>Descobre nome, cargo e departamento e calcula 4 notas (empresa, contato, email, oportunidade) mais a nota final.</p>
+    <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+    <div class="actions"><button class="btn primary">Enriquecer contatos</button></div>
+  </form>
+</div>
+{% endif %}
+<h2>Contatos {% if filtro %}· {{ filtro|replace("_", " ") }} <a href="/filtro" class="hint">(limpar filtro)</a>{% endif %}</h2>
+<table>
+  <tr><th>Contato</th><th>Empresa</th><th>Email</th><th>Situação</th><th>Motivo</th><th>Notas (emp/cont/email/opor)</th><th>Final</th></tr>
+  {% for c, e in rows %}
+  <tr><td>{{ c.nome_completo or "—" }}{% if c.cargo %}<br><span class="hint">{{ c.cargo }}</span>{% endif %}</td>
+    <td>{% if e %}<a href="/hunter/empresas/{{ e.id }}">{{ e.nome_fantasia or e.razao_social or e.dominio }}</a>{% else %}—{% endif %}</td>
+    <td>{{ c.email }}<br><span class="hint">{{ c.email_type or "" }}</span></td>
+    <td><span class="tag">{{ c.email_status|replace("_", " ") }}</span>{% if c.bloqueado_envio %} <span class="tag">bloqueado p/ envio</span>{% endif %}</td>
+    <td class="hint">{{ motivos.get(c.id, c.bloqueio_motivo or "") }}</td>
+    <td>{{ c.nota_empresa if c.nota_empresa is not none else "—" }} / {{ c.nota_contato if c.nota_contato is not none else "—" }} / {{ c.nota_email if c.nota_email is not none else "—" }} / {{ c.nota_oportunidade if c.nota_oportunidade is not none else "—" }}</td>
+    <td><b>{{ c.nota_final if c.nota_final is not none else "—" }}</b></td></tr>
+  {% else %}<tr><td colspan="7">Nenhum contato neste filtro.</td></tr>{% endfor %}
+</table>
+<p>{% if pagina > 1 %}<a href="/filtro?status={{ filtro }}&pagina={{ pagina - 1 }}">← anterior</a>{% endif %}
+   {% if rows|length == 50 %}<a href="/filtro?status={{ filtro }}&pagina={{ pagina + 1 }}">próxima →</a>{% endif %}</p>
+<h2>Execuções recentes</h2>
+{% include "_jobs_table.html" %}
+{% endblock %}

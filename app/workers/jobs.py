@@ -66,6 +66,13 @@ async def resolve_job(ctx, ws: int) -> dict:
         return run_resolution(session, ws)
 
 
+async def validate_emails_job(ctx, ws: int, limite: int = 500, refazer: bool = False) -> dict:
+    from app.filtro.validation.service import run_validation
+
+    with SessionLocal() as session:
+        return run_validation(session, ws, limite, refazer)
+
+
 async def scan_mailbox_job(ctx, mailbox_id: int) -> dict:
     with SessionLocal() as session:
         mailbox = session.get(MailboxAccount, mailbox_id)
