@@ -3,22 +3,24 @@ import time
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse, StreamingResponse
+from fastapi.responses import RedirectResponse, Response, StreamingResponse
 from sqlalchemy import exists, func, select
 
 from app.core.config import get_settings
 from app.core.db import SessionLocal
-from app.core.models import Company, Contact, Evidence, IcpProfile, JobRun, OpportunitySignal
+from app.core.models import Company, CompanyMerge, Contact, Evidence, IcpProfile, JobRun, OpportunitySignal
 from app.hunter.companies import cnpj as cnpj_mod
 from app.hunter.companies import places as places_mod
+from app.hunter.resolution.dedupe import undo_merge
+from app.hunter.resolution.service import export_consolidated
 from app.web.deps import Ctx, current_ctx, editor_ctx, flash, render
 from app.workers.queue import enqueue
 
 router = APIRouter(prefix="/hunter")
 PAGE = 50
-TIPOS = ("coleta_cnpj", "coleta_places", "coleta_sites", "coleta_sinais")
+TIPOS = ("coleta_cnpj", "coleta_places", "coleta_sites", "coleta_sinais", "resolucao")
 NOMES = {"coleta_cnpj": "Base CNPJ", "coleta_places": "Google Places", "coleta_sites": "Leitura de sites",
-         "coleta_sinais": "Sinais comerciais"}
+         "coleta_sinais": "Sinais comerciais", "resolucao": "Unificação de duplicados"}
 
 
 def _icps(ctx: Ctx) -> list[IcpProfile]:
@@ -109,6 +111,46 @@ def empresa(company_id: int, request: Request, ctx: Ctx = Depends(current_ctx)):
         OpportunitySignal.workspace_id == ctx.workspace_id, OpportunitySignal.company_id == c.id)
         .order_by(OpportunitySignal.detectado_em.desc())).all()
     return render(request, "hunter_empresa.html", ctx, ativo="hunter", c=c, ev=ev, contatos=contatos, sinais=sinais)
+
+
+@router.post("/duplicados/rodar")
+async def duplicados_rodar(request: Request, ctx: Ctx = Depends(editor_ctx)):
+    await _queue(request, "resolve_job", ctx.workspace_id, ok="Unificação iniciada. Acompanhe abaixo.")
+    return RedirectResponse("/hunter/duplicados", status_code=303)
+
+
+@router.get("/duplicados")
+def duplicados(request: Request, ctx: Ctx = Depends(current_ctx)):
+    merges = ctx.db.execute(select(CompanyMerge, Company).join(Company, Company.id == CompanyMerge.merged_id)
+                            .where(CompanyMerge.workspace_id == ctx.workspace_id)
+                            .order_by(CompanyMerge.id.desc()).limit(100)).all()
+    surv = {c.id: c for c in ctx.db.scalars(select(Company).where(
+        Company.id.in_([m.survivor_id for m, _ in merges] or [0])))}
+    bloqueados = ctx.db.scalar(select(func.count()).select_from(Contact).where(
+        Contact.workspace_id == ctx.workspace_id, Contact.bloqueado_envio.is_(True)))
+    contadores = ctx.db.scalar(select(func.count()).select_from(Company).where(
+        Company.workspace_id == ctx.workspace_id, Company.contador.is_(True)))
+    return render(request, "hunter_duplicados.html", ctx, ativo="hunter", merges=merges, surv=surv, bloqueados=bloqueados,
+                  contadores=contadores, jobs=_recent_jobs(ctx, 5), nomes=NOMES)
+
+
+@router.post("/duplicados/{merge_id:int}/desfazer")
+def duplicados_desfazer(merge_id: int, request: Request, ctx: Ctx = Depends(editor_ctx)):
+    try:
+        undo_merge(ctx.db, merge_id, ctx.workspace_id)
+        ctx.db.commit()
+        flash(request, "Mesclagem desfeita: a empresa voltou a existir separada.")
+    except LookupError:
+        raise HTTPException(status_code=404)
+    except ValueError as e:
+        flash(request, str(e), "err")
+    return RedirectResponse("/hunter/duplicados", status_code=303)
+
+
+@router.get("/exportar/consolidada.csv")
+def exportar_consolidada(ctx: Ctx = Depends(current_ctx)):
+    return Response(export_consolidated(ctx.db, ctx.workspace_id), media_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": 'attachment; filename="lista_consolidada.csv"'})
 
 
 @router.get("/sinais")

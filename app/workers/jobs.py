@@ -59,6 +59,13 @@ async def collect_signals_job(ctx, ws: int, icp_id: int | None = None, limite: i
         return run_signals(session, ws, _icp(session, ws, icp_id), limite)
 
 
+async def resolve_job(ctx, ws: int) -> dict:
+    from app.hunter.resolution.service import run_resolution
+
+    with SessionLocal() as session:
+        return run_resolution(session, ws)
+
+
 async def scan_mailbox_job(ctx, mailbox_id: int) -> dict:
     with SessionLocal() as session:
         mailbox = session.get(MailboxAccount, mailbox_id)
