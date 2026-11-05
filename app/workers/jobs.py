@@ -73,6 +73,17 @@ async def validate_emails_job(ctx, ws: int, limite: int = 500, refazer: bool = F
         return run_validation(session, ws, limite, refazer)
 
 
+async def enrich_job(ctx, ws: int) -> dict:
+    from app.core.config import get_settings
+    from app.filtro.enrichment.service import run_enrichment
+    from app.hunter.companies.fetch import SafeFetcher
+
+    s = get_settings()
+    with SessionLocal() as session:
+        f = SafeFetcher(user_agent=s.crawl_user_agent, delay=s.crawl_delay_s, timeout=s.crawl_timeout_s)
+        return run_enrichment(session, ws, fetcher=f)
+
+
 async def scan_mailbox_job(ctx, mailbox_id: int) -> dict:
     with SessionLocal() as session:
         mailbox = session.get(MailboxAccount, mailbox_id)
