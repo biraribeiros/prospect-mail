@@ -108,3 +108,30 @@ async def scan_mailbox_job(ctx, mailbox_id: int) -> dict:
             raise
         return {"job_id": res.job_id, "repetido": res.repetido, "lidas": res.lidas,
                 "interacoes_novas": res.interacoes_novas, "contatos_novos": res.contatos_novos}
+
+
+async def dispatch_workspace_job(ctx, ws: int) -> dict:
+    """Agenda as mensagens aprovadas e envia as que venceram, para um workspace."""
+    from app.disparo.scheduler import schedule_approved, send_due
+
+    with SessionLocal() as session:
+        a = schedule_approved(session, ws)
+        b = send_due(session, ws)
+        session.commit()
+        return {**a, **b}
+
+
+async def dispatch_all_job(ctx) -> dict:
+    """Roda a cada minuto (cron do worker): despacha todos os workspaces que têm algo na fila."""
+    from sqlalchemy import select
+
+    from app.core.models import OutboundMessage
+
+    with SessionLocal() as session:
+        wss = list(session.scalars(select(OutboundMessage.workspace_id).where(
+            OutboundMessage.status.in_(("aprovada", "agendada"))).distinct()))
+    total = {"enviadas": 0}
+    for ws in wss:
+        r = await dispatch_workspace_job(ctx, ws)
+        total["enviadas"] += r.get("enviadas", 0)
+    return total

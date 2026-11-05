@@ -59,6 +59,8 @@ async def csrf_guard(request: Request) -> None:
     """Protege todo POST/PUT/PATCH/DELETE: o token da sessão precisa voltar no formulário ou no cabeçalho."""
     if request.method not in {"POST", "PUT", "PATCH", "DELETE"}:
         return
+    if request.url.path.startswith("/u/"):  # descadastro público (One-Click): protegido pelo token assinado
+        return
     provided = request.headers.get("x-csrf-token")
     if not provided:
         content_type = request.headers.get("content-type", "")
