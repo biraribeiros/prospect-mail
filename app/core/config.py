@@ -30,6 +30,19 @@ class Settings(BaseSettings):
     llm_max_calls_per_scan: int = 200
     data_dir: str = "data"
     mbox_max_mb: int = 500
+    # Etapa 2a — empresas
+    cnpj_dir: str = "data/cnpj"
+    cnpj_max_empresas: int = 50_000
+    google_places_api_key: str = ""
+    # Estimativa em US$ por 1.000 consultas do Text Search (a tabela do Google muda: confira antes de rodar).
+    places_price_per_1000_usd: float = 35.0
+    places_max_pages: int = 3
+    places_cache_days: int = 30
+    places_max_usd_per_run: float = 5.0  # a coleta para sozinha ao atingir este gasto
+    crawl_user_agent: str = "ProspectorBot/1.0 (leitura de paginas publicas de contato)"
+    crawl_delay_s: float = 1.0
+    crawl_timeout_s: float = 10.0
+    crawl_max_pages: int = 5
 
     @property
     def dry_run(self) -> bool:

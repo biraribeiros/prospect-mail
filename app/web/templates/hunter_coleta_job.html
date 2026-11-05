@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Coleta · Prospector{% endblock %}
+{% block content %}
+<p><a href="/hunter/coleta">← Coletas</a></p>
+<h1>{{ nome }}</h1>
+<p class="sub">Iniciada em {{ job.iniciado_em.strftime("%d/%m/%Y %H:%M") }}.</p>
+<div class="grid" style="margin-bottom:14px">
+  <div class="card"><div class="num" id="status">—</div><p>situação</p></div>
+  <div class="card"><div class="num" id="custo">US$ 0,000</div><p>custo estimado até agora</p></div>
+</div>
+<div class="card"><h3>Andamento</h3><table id="contadores"><tr><td>Aguardando…</td></tr></table></div>
+<script>
+(function () {
+  var nomes = {em_andamento: "em andamento", concluido: "concluída", falhou: "falhou"};
+  function pintar(d) {
+    document.getElementById("status").textContent = nomes[d.status] || d.status;
+    document.getElementById("custo").textContent = "US$ " + d.custo_usd.toFixed(3).replace(".", ",");
+    var t = document.getElementById("contadores"); t.textContent = "";
+    Object.keys(d.contadores).forEach(function (k) {
+      var tr = document.createElement("tr"), a = document.createElement("td"), b = document.createElement("td");
+      a.textContent = k.replace(/_/g, " "); var v = d.contadores[k];
+      b.textContent = Array.isArray(v) ? v.join(" · ") : String(v);
+      tr.appendChild(a); tr.appendChild(b); t.appendChild(tr);
+    });
+  }
+  var es = new EventSource("/hunter/coleta/{{ job.id }}/eventos");
+  es.onmessage = function (e) { var d = JSON.parse(e.data); pintar(d); if (d.status !== "em_andamento") es.close(); };
+})();
+</script>
+{% endblock %}

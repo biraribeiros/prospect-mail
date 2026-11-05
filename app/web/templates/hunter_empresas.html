@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Empresas · Prospector{% endblock %}
+{% block content %}
+<p><a href="/hunter">← Hunter</a></p>
+<div class="row" style="justify-content:space-between">
+  <div><h1>Empresas</h1><p class="sub">{{ total }} empresa(s). Cada dado tem origem registrada — abra a empresa para ver.</p></div>
+  <div class="row"><a class="btn" href="/exportar/empresas.csv">Baixar CSV</a><a class="btn primary" href="/hunter/coleta">Coletar empresas</a></div>
+</div>
+<form method="get" class="card row" style="margin-bottom:14px">
+  <input type="text" name="q" value="{{ f.q }}" placeholder="Nome, domínio ou CNPJ" style="max-width:240px">
+  <input type="text" name="uf" value="{{ f.uf }}" placeholder="UF" style="max-width:70px">
+  <select name="fonte"><option value="">Qualquer fonte</option>{% for k, n in (("cnpj_receita","Base CNPJ"),("google_places","Google Places"),("crawler_site","Site"),("importacao_manual","Importação manual")) %}<option value="{{ k }}" {{ 'selected' if f.fonte == k }}>{{ n }}</option>{% endfor %}</select>
+  <select name="site"><option value="">Com ou sem site</option><option value="com" {{ 'selected' if f.site == 'com' }}>Com site</option><option value="sem" {{ 'selected' if f.site == 'sem' }}>Sem site</option><option value="nao_lido" {{ 'selected' if f.site == 'nao_lido' }}>Site ainda não lido</option></select>
+  <select name="cnpj"><option value="">Com ou sem CNPJ</option><option value="com" {{ 'selected' if f.cnpj == 'com' }}>Com CNPJ</option><option value="sem" {{ 'selected' if f.cnpj == 'sem' }}>Sem CNPJ</option></select>
+  <button class="btn primary">Filtrar</button>
+</form>
+<table>
+  <tr><th>Empresa</th><th>CNPJ</th><th>Cidade</th><th>Site</th><th>Origem</th><th>Contatos</th></tr>
+  {% for c in rows %}
+  <tr>
+    <td><a href="/hunter/empresas/{{ c.id }}">{{ c.nome_fantasia or c.razao_social or c.dominio or "(sem nome)" }}</a>{% if c.nome_fantasia and c.razao_social %}<br><span class="hint">{{ c.razao_social }}</span>{% endif %}</td>
+    <td>{{ c.cnpj|cnpj_fmt or "—" }}</td>
+    <td>{{ c.municipio or "—" }}{{ "/" ~ c.uf if c.uf }}</td>
+    <td>{% if c.site %}<a href="{{ c.site|safe_url }}" target="_blank" rel="noopener noreferrer nofollow">{{ c.dominio or c.site }}</a>{% else %}—{% endif %}
+      {% if c.site_status != "nao_lido" %}<br><span class="tag">{{ c.site_status|replace("_", " ") }}</span>{% endif %}</td>
+    <td>{% for s in fontes.get(c.id, []) %}<span class="tag">{{ s|replace("_", " ") }}</span> {% endfor %}</td>
+    <td>{{ contatos.get(c.id, 0) }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="6">Nenhuma empresa com esses filtros. <a href="/hunter/coleta">Coletar empresas</a> a partir de um perfil.</td></tr>
+  {% endfor %}
+</table>
+{% if paginas > 1 %}
+<div class="row" style="margin-top:14px">
+  {% if pagina > 1 %}<a class="btn small" href="?{{ qs }}&pagina={{ pagina - 1 }}">← Anterior</a>{% endif %}
+  <span class="hint">Página {{ pagina }} de {{ paginas }}</span>
+  {% if pagina < paginas %}<a class="btn small" href="?{{ qs }}&pagina={{ pagina + 1 }}">Próxima →</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

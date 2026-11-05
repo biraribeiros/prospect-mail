@@ -171,7 +171,26 @@ class Company(Base):
     fit_score: Mapped[int | None] = mapped_column(Integer)
     setor_humano: Mapped[str | None] = mapped_column(Text)
     gatilhos_previaveis: Mapped[list[str]] = mapped_column(TextArray, server_default=EMPTY_ARRAY)
+    # Etapa 2a (Hunter: empresas)
+    telefone: Mapped[str | None] = mapped_column(Text)
+    endereco: Mapped[str | None] = mapped_column(Text)
+    site_status: Mapped[str] = mapped_column(Text, default="nao_lido", server_default="nao_lido")
+    site_lido_em: Mapped[datetime | None] = mapped_column(TS)
     criado_em: Mapped[datetime] = mapped_column(TS, server_default=func.now())
+
+
+class ApiCache(Base):
+    """Cache de respostas de APIs pagas (ex.: Google Places, 30 dias) — evita pagar duas vezes pela mesma busca."""
+
+    __tablename__ = "api_cache"
+    __table_args__ = (UniqueConstraint("workspace_id", "provedor", "chave"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspace.id", ondelete="CASCADE"), index=True)
+    provedor: Mapped[str] = mapped_column(Text)
+    chave: Mapped[str] = mapped_column(Text)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    criado_em: Mapped[datetime] = mapped_column(TS, server_default=func.now())
+    expira_em: Mapped[datetime] = mapped_column(TS)
 
 
 class Contact(Base):

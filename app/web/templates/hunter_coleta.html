@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Coleta de empresas · Prospector{% endblock %}
+{% block content %}
+<p><a href="/hunter">← Hunter</a></p>
+<h1>Coleta de empresas</h1>
+<p class="sub">Escolha um perfil de cliente ideal e a fonte. Cada dado coletado guarda de onde veio. <a href="/configuracoes/icp">Editar perfis</a></p>
+
+{% if estimativa %}
+<div class="card" style="border-color:var(--warn);margin-bottom:16px">
+  <h3>Custo estimado — Google Places · {{ estimativa_icp.nome }}</h3>
+  <p>{{ estimativa.consultas }} consulta(s) ({{ estimativa.em_cache }} já em cache, sem custo; {{ estimativa.novas }} novas).</p>
+  <p><b>Entre US$ {{ "%.2f"|format(estimativa.custo_min) }} e US$ {{ "%.2f"|format(estimativa.custo_max) }}</b>
+     (até {{ estimativa.max_paginas }} páginas por consulta, US$ {{ "%.2f"|format(estimativa.preco_por_mil) }} por mil — confira a tabela atual do Google).</p>
+  <p>A busca para sozinha ao chegar em US$ {{ "%.2f"|format(limite_usd) }}.</p>
+  <form method="post" action="/hunter/coleta/places/rodar" class="row" style="margin-top:10px">
+    <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+    <input type="hidden" name="icp_id" value="{{ estimativa_icp.id }}">
+    <label style="display:inline-flex;gap:6px;align-items:center;font-weight:400;margin:0"><input type="checkbox" name="confirmo" value="sim" required> Confirmo o custo estimado</label>
+    <button class="btn primary">Rodar busca</button><a class="btn" href="/hunter/coleta">Cancelar</a>
+  </form>
+</div>
+{% endif %}
+
+{% if not icps %}
+<div class="msg">Você ainda não tem perfil de cliente ideal. <a href="/configuracoes/icp/novo">Crie o primeiro</a> para começar.</div>
+{% endif %}
+
+<div class="grid">
+  <form class="card" method="post" action="/hunter/coleta/cnpj">
+    <h3>1. Base CNPJ (Receita Federal)</h3>
+    <p>Empresas ativas do perfil (CNAE, estado, cidade, porte) e seus sócios. Gratuito.</p>
+    {% if arquivos %}<p class="hint" style="margin-top:8px">Arquivos encontrados em <code>{{ cnpj_dir }}</code>:
+      {% for tipo, nomes_arq in arquivos %}{{ tipo }} ({{ nomes_arq|length }}){{ ", " if not loop.last }}{% endfor %}</p>
+    {% else %}<p class="hint" style="margin-top:8px">Nenhum arquivo em <code>{{ cnpj_dir }}</code>. Baixe os arquivos <i>Empresas</i>, <i>Estabelecimentos</i>, <i>Sócios</i> e <i>Municípios</i> dos dados abertos da Receita e coloque nessa pasta.</p>{% endif %}
+    <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+    <label for="c_icp">Perfil</label>
+    <select id="c_icp" name="icp_id" required>{% for i in icps %}<option value="{{ i.id }}">{{ i.nome }}</option>{% endfor %}</select>
+    {% if ctx.can_edit and icps %}<div class="actions"><button class="btn primary">Importar do perfil</button></div>{% endif %}
+  </form>
+
+  <form class="card" method="post" action="/hunter/coleta/places/estimar">
+    <h3>2. Google Places (Maps)</h3>
+    <p>Busca por termo e cidade do perfil. <b>Tem custo</b>: você vê a estimativa e confirma antes.</p>
+    {% if not tem_chave %}<p class="hint" style="margin-top:8px">Falta configurar <code>GOOGLE_PLACES_API_KEY</code> no arquivo .env. Você já pode calcular a estimativa.</p>{% endif %}
+    <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+    <label for="p_icp">Perfil</label>
+    <select id="p_icp" name="icp_id" required>{% for i in icps %}<option value="{{ i.id }}">{{ i.nome }}</option>{% endfor %}</select>
+    {% if ctx.can_edit and icps %}<div class="actions"><button class="btn primary">Calcular custo</button></div>{% endif %}
+  </form>
+
+  <form class="card" method="post" action="/hunter/coleta/sites">
+    <h3>3. Leitura de sites</h3>
+    <p>Abre as páginas públicas de contato das empresas que têm site e coleta emails, telefones e WhatsApp. Respeita o robots.txt.</p>
+    <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+    <label for="s_icp">Perfil (opcional)</label>
+    <select id="s_icp" name="icp_id"><option value="">Todas as empresas com site</option>{% for i in icps %}<option value="{{ i.id }}">{{ i.nome }}</option>{% endfor %}</select>
+    <label for="s_lim">Máximo de sites</label><input type="text" id="s_lim" name="limite" value="200">
+    {% if ctx.can_edit %}<div class="actions"><button class="btn primary">Ler sites</button></div>{% endif %}
+  </form>
+</div>
+
+<h2>Coletas recentes</h2>
+<div id="jobs" hx-get="/hunter/coleta/recentes" hx-trigger="every 4s" hx-swap="innerHTML">
+  {% include "_jobs_table.html" %}
+</div>
+{% endblock %}
