@@ -12,6 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.limits import send_room
 from app.core.models import Company, Contact, MailboxAccount, OutboundMessage, SenderDomain, Suppression
 from app.core.security import decrypt_json
 from app.disparo import breaker
@@ -189,11 +190,15 @@ def send_due(session: Session, ws: int, sender: Sender | None = None, now: datet
              alert: Callable[[str], None] | None = None) -> dict:
     now = now or datetime.now(timezone.utc)
     sender = sender or SmtpSender()
-    out = {"enviadas": 0, "bloqueadas": 0, "falhas": 0, "pausado": False}
+    out = {"enviadas": 0, "bloqueadas": 0, "falhas": 0, "pausado": False, "limite_workspace": False}
+    room = send_room(session, ws, now)  # limite diário de envios do workspace (None = sem limite)
     due = session.scalars(select(OutboundMessage).where(
         OutboundMessage.workspace_id == ws, OutboundMessage.status == "agendada", OutboundMessage.agendada_para <= now)
         .order_by(OutboundMessage.agendada_para, OutboundMessage.id)).all()
     for msg in due:
+        if room is not None and room <= 0:
+            out["limite_workspace"] = True  # passou do limite do dia: o resto fica agendado para amanhã
+            break
         ct = session.get(Contact, msg.contact_id)
         mb = session.get(MailboxAccount, msg.mailbox_id) if msg.mailbox_id else None
         motivo = None
@@ -210,6 +215,10 @@ def send_due(session: Session, ws: int, sender: Sender | None = None, now: datet
         if motivo:
             msg.status, msg.motivo = "bloqueada", motivo
             out["bloqueadas"] += 1
+            continue
+        comp = session.get(Company, msg.company_id) if msg.company_id else None
+        if not in_window(now, recipient_tz(comp)):  # fora do horário comercial do destinatário: espera a próxima janela
+            msg.agendada_para = next_window_start(now, recipient_tz(comp))
             continue
         try:
             dom = assert_can_send(session, mb)
@@ -246,6 +255,7 @@ def send_due(session: Session, ws: int, sender: Sender | None = None, now: datet
             msg.thread_raiz_id = msg.id
         dom.ja_enviou = True  # a partir daqui o tipo do domínio não muda mais
         out["enviadas"] += 1
+        room = None if room is None else room - 1
     session.flush()
     if out["enviadas"]:
         breaker.evaluate(session, ws, now, alert)

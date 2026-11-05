@@ -184,3 +184,20 @@ async def weekly_report_job(ctx) -> dict:
         for ws in session.scalars(select(Workspace.id)):
             enviados += send_weekly_report(session, ws)
     return {"emails": enviados}
+
+
+async def ops_check_job(ctx) -> dict:
+    """A cada 15 minutos: encerra tarefas presas e avisa. Uma vez por dia (às 3h): renova tokens OAuth e confere o backup."""
+    from datetime import datetime
+
+    from app.ops import health
+
+    with SessionLocal() as session:
+        presos = health.reap_stuck_jobs(session)
+        out = {"presos": presos}
+        if datetime.utcnow().hour == 6 and datetime.utcnow().minute < 15:  # 3h em Brasília
+            out["tokens"] = health.refresh_oauth_tokens(session)
+            st = health.backup_status()
+            out["backup_ok"] = st["ok"]
+        session.commit()
+        return out

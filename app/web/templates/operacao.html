@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Operação · Prospector{% endblock %}
+{% block content %}
+<p><a href="/configuracoes">← Configurações</a></p>
+<h1>Operação</h1>
+<p class="sub">Saúde do sistema, limites e pessoas. Só administradores veem esta página.</p>
+
+<h2>Saúde</h2>
+<div class="grid">
+  <div class="card"><div class="num">{{ "✔" if backup.ok else "✘" }}</div><h3>Backup diário</h3>
+    <p>{% if backup.ultimo %}Último: {{ backup.ultimo.strftime("%d/%m %H:%M") }} ({{ backup.idade_h }} h atrás, {{ backup.tamanho_mb }} MB). {{ backup.quantidade }} arquivo(s) guardados (30 dias).{% endif %}
+    {% if backup.aviso %}<br><span class="hint">⚠ {{ backup.aviso }}</span>{% endif %}</p></div>
+  <div class="card"><div class="num">{{ presos|length }}</div><h3>Tarefas presas</h3><p>Em andamento há mais tempo que o normal.</p>
+    {% if presos %}<form method="post" action="/operacao/tarefas-presas/encerrar"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn small">Encerrar e liberar</button></form>{% endif %}</div>
+  <div class="card"><h3>Acessos Gmail/Microsoft</h3>{% for c in caixas %}<p>{{ c.nome }}: <span class="tag">{{ c.saude }}</span></p>{% else %}<p>Nenhuma caixa OAuth conectada.</p>{% endfor %}
+    <p class="hint">Renovados automaticamente todo dia.</p></div>
+</div>
+
+<h2>Limites deste workspace</h2>
+<form method="post" action="/operacao/limites" class="card">
+  <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+  <label for="max_contatos">Máximo de contatos (usados: {{ uso.contatos|int }})</label><input type="text" id="max_contatos" name="max_contatos" value="{{ lim.max_contatos|int }}">
+  <label for="envios_dia">Máximo de envios por dia (hoje: {{ uso.envios_dia|int }})</label><input type="text" id="envios_dia" name="envios_dia" value="{{ lim.envios_dia|int }}">
+  <label for="gasto">Gasto mensal máximo com APIs, em US$ (este mês: {{ "%.2f"|format(uso.gasto_api_mes_usd) }})</label><input type="text" id="gasto" name="gasto_api_mes_usd" value="{{ lim.gasto_api_mes_usd }}">
+  <p class="hint">0 = sem limite. Ao atingir o gasto, as coletas pagas e a IA param sozinhas.</p>
+  <div class="actions"><button class="btn primary">Salvar limites</button></div>
+</form>
+
+<h2>Pessoas e papéis</h2>
+<table><tr><th>Email</th><th>Nome</th><th>Papel</th></tr>
+{% for u, m in membros %}<tr><td>{{ u.email }}</td><td>{{ u.nome }}</td><td><span class="tag">{{ m.papel }}</span></td></tr>{% endfor %}</table>
+<p class="hint">Admin: tudo. Operador: coleta, cadastros e envio. Aprovador: aprova hipóteses e mensagens (não altera cadastros).</p>
+<form method="post" action="/operacao/usuarios" class="card">
+  <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+  <label for="u_email">Email</label><input type="text" id="u_email" name="email" required>
+  <label for="u_nome">Nome</label><input type="text" id="u_nome" name="nome">
+  <label for="u_senha">Senha provisória (mín. 10 caracteres)</label><input type="password" id="u_senha" name="senha" autocomplete="new-password" required>
+  <label for="u_papel">Papel</label><select id="u_papel" name="papel"><option value="operador">Operador</option><option value="aprovador">Aprovador</option><option value="admin">Admin</option></select>
+  <div class="actions"><button class="btn primary">Adicionar ao workspace</button></div>
+</form>
+
+<h2>Novo workspace (outro setor)</h2>
+<form method="post" action="/operacao/workspaces" class="card">
+  <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+  <label for="w_nome">Nome</label><input type="text" id="w_nome" name="nome" required>
+  <p class="hint">Cada workspace tem seus próprios perfis, departamentos, ofertas, caixas e dados — nada é compartilhado.</p>
+  <div class="actions"><button class="btn primary">Criar workspace</button></div>
+</form>
+{% endblock %}

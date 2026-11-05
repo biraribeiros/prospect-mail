@@ -1,9 +1,16 @@
 name: prospector
 
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"   # rotação de logs: no máximo 5 arquivos de 10 MB por serviço
+    max-file: "5"
+
 x-app: &app
   build: .
   image: prospector-app:dev
   env_file: .env
+  logging: *logging
   environment: &app-env
     DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-prospector}:${POSTGRES_PASSWORD:-prospector}@postgres:5432/${POSTGRES_DB:-prospector}
     REDIS_URL: redis://redis:6379/0
@@ -20,6 +27,7 @@ x-app: &app
 services:
   postgres:
     image: postgres:16
+    logging: *logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-prospector}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prospector}
@@ -36,6 +44,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    logging: *logging
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -53,13 +62,31 @@ services:
     ports:
       - "127.0.0.1:11334:11334"
 
+  backup:
+    image: postgres:16
+    logging: *logging
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-prospector}
+      POSTGRES_DB: ${POSTGRES_DB:-prospector}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-prospector}
+    volumes:
+      - ./data/backups:/backups
+      - ./docker:/app:ro
+    entrypoint: ["sh", "/app/backup.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   app:
     <<: *app
+    restart: unless-stopped
     ports:
       - "127.0.0.1:8000:8000"
 
   worker:
     <<: *app
+    restart: unless-stopped
     command: ["arq", "app.workers.worker.WorkerSettings"]
 
 volumes:

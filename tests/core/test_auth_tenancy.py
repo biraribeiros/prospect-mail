@@ -68,10 +68,10 @@ def test_health(client):
     assert r.status_code == 200 and r.json() == {"status": "ok", "dry_run": True}
 
 
-def test_secoes_em_construcao(logged):
-    for slug, sprint in [("filtro", "Sprint 4"), ("inteligencia", "Sprint 5"), ("disparo", "Sprint 6")]:
+def test_secoes_principais_abrem(logged):
+    for slug, titulo in [("filtro", "Filtro"), ("inteligencia", "Inteligência"), ("disparo", "Disparo"), ("metricas", "Métricas")]:
         r = logged.get(f"/{slug}")
-        assert r.status_code == 200 and "Em construção" in r.text and sprint in r.text
+        assert r.status_code == 200 and titulo in r.text and "Em construção" not in r.text
 
 
 # ---------- isolamento entre workspaces ----------
