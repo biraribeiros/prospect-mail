@@ -69,7 +69,7 @@ def test_health(client):
 
 
 def test_secoes_em_construcao(logged):
-    for slug, sprint in [("hunter", "Sprint 1"), ("filtro", "Sprint 4"), ("inteligencia", "Sprint 5"), ("disparo", "Sprint 6")]:
+    for slug, sprint in [("filtro", "Sprint 4"), ("inteligencia", "Sprint 5"), ("disparo", "Sprint 6")]:
         r = logged.get(f"/{slug}")
         assert r.status_code == 200 and "Em construção" in r.text and sprint in r.text
 

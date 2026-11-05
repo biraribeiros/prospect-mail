@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Filtro de ruído · Prospector{% endblock %}
+{% block content %}
+<p><a href="/hunter">← Hunter</a></p>
+<h1>Filtro de ruído</h1>
+<p class="sub">Emails de robôs, bancos, redes sociais, notificações e newsletters são ignorados. Aqui você ajusta o que vale para o seu workspace.</p>
+<form method="post" action="/hunter/ruido" class="card">
+  <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+  <label for="locais">Nomes de caixa a ignorar</label>
+  <p class="hint">A parte antes do @. Ex.: financeiro-automatico</p>
+  <textarea id="locais" name="locais" {{ '' if ctx.can_edit else 'disabled' }}>{{ cfg.get("locais", [])|join("\n") }}</textarea>
+  <label for="dominios">Domínios a ignorar</label>
+  <p class="hint">Ex.: fornecedor-de-newsletter.com.br (vale também para subdomínios)</p>
+  <textarea id="dominios" name="dominios" {{ '' if ctx.can_edit else 'disabled' }}>{{ cfg.get("dominios", [])|join("\n") }}</textarea>
+  <label for="permitidos">Nunca ignorar (exceções)</label>
+  <p class="hint">Emails ou domínios que devem sempre entrar, mesmo que pareçam ruído.</p>
+  <textarea id="permitidos" name="permitidos" {{ '' if ctx.can_edit else 'disabled' }}>{{ cfg.get("permitidos", [])|join("\n") }}</textarea>
+  {% if ctx.can_edit %}<div class="actions"><button class="btn primary">Salvar</button></div>{% endif %}
+</form>
+<h2>Já ignorados por padrão</h2>
+<div class="card"><p><b>Caixas:</b> {{ padroes|join(", ") }}</p><p style="margin-top:8px"><b>Domínios:</b> {{ dominios_padrao|join(", ") }}</p>
+<p style="margin-top:8px">Também são ignoradas mensagens de listas e envio em massa (cabeçalhos <i>List-Unsubscribe</i>, <i>Precedence: bulk</i>).</p></div>
+{% endblock %}

@@ -21,6 +21,15 @@ class Settings(BaseSettings):
     retention_days: int = 730
     smtp_host: str = "localhost"
     smtp_port: int = 1025
+    # IA (Claude) — usada só como reserva na leitura de assinaturas; sem chave, fica desligada.
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-haiku-5-5"
+    # Estimativa de custo em US$ por milhão de tokens (confira os preços atuais; configurável).
+    llm_price_in_per_mtok: float = 0.10
+    llm_price_out_per_mtok: float = 0.50
+    llm_max_calls_per_scan: int = 200
+    data_dir: str = "data"
+    mbox_max_mb: int = 500
 
     @property
     def dry_run(self) -> bool:

@@ -5,8 +5,8 @@ Leia também: [VALIDACAO_DO_PLANO.md](VALIDACAO_DO_PLANO.md) (correções aprova
 | Etapa | Status | Branch | Observações |
 |---|---|---|---|
 | Planejamento e validação | ✅ feito | main | Correções F1–F17 aprovadas (Prompt Mestre v3.1) |
-| 0 Fundação | ✅ feita (aguarda merge) | `sprint-00-fundacao` | 66 testes passando; aceite conferido (ver abaixo) |
-| 1 Caixas de email | ⬜ | | LGPD adiada até comercialização |
+| 0 Fundação | ✅ feita e unida | `sprint-00-fundacao` (PR #1) | 66 testes; aceite conferido |
+| 1 Caixas de email | ✅ feita (aguarda PR) | `sprint-01-caixas-email` | 149 testes no total (83 novos); aceite ponta a ponta conferido (ver abaixo) |
 | 2a Empresas | ⬜ | | |
 | 2b Sinais | ⬜ | | Decisão: fonte de vagas |
 | 3 Duplicados | ⬜ | | |
@@ -19,6 +19,28 @@ Leia também: [VALIDACAO_DO_PLANO.md](VALIDACAO_DO_PLANO.md) (correções aprova
 | 8 Respostas e CRM | ⬜ | | Decisão: qual CRM |
 | 9 Métricas | ⬜ | | |
 | 10 Produção | ⬜ | | |
+
+## Etapa 1 — o que foi feito (Hunter: caixas de email)
+- Migração `0002`: tabelas `mailbox_account` (config cifrada em `tokens_enc`) e `mail_interaction` (só metadados: data, direção, palavras-chave); novas colunas em `contact` (telefone, site, trecho de assinatura, tipo de domínio, contagens, última interação).
+- Interface única `MailboxReader` com 4 leitores: **mbox/eml** e **IMAP** (testados), **Gmail API** e **Microsoft Graph** (testados só com respostas simuladas; renovação de token OAuth pronta).
+- Varredura de Recebidos e Enviados; filtro de ruído editável por workspace (robôs, bancos, redes sociais, marketplaces, cabeçalhos de lista); leitura de assinatura por regras; reserva por IA (`claude-haiku-5-5`, chamada direta por httpx, custo estimado no `job_run`; desligada sem `ANTHROPIC_API_KEY`).
+- Nota de relacionamento 0–100 (volume, mão dupla, recência, palavras-chave); domínio corporativo × pessoal.
+- Telas: Hunter → Caixas (enviar .mbox, conectar IMAP, varrer, remover), Contatos (filtros, ordenação por nota, CSV), Filtro de ruído. A varredura roda no worker.
+- Garantias testadas: 1.000 mensagens → contatos sem duplicados; reprocessar → zero registros novos; registro de conformidade e evidência por contato; **corpo e assunto do email nunca são gravados**.
+
+### Como validar a Etapa 1
+```bash
+docker compose run --rm app pytest tests/hunter/test_mailbox.py -v
+docker compose exec app python scripts/verificar_etapa1.py   # aceite ponta a ponta com o worker
+```
+Resultado (05/11/2026): 1.000 mensagens fictícias lidas em ~13 s → 270 contatos, 900 interações, 100 ruídos ignorados; reprocessar não alterou nenhuma contagem.
+
+### Decisões e pendências da Etapa 1
+- Teste real só com `.mbox` (decisão do dono). IMAP: validado com servidor simulado. **Gmail/Outlook**: leitores prontos, mas sem tela de conexão OAuth; ligar quando houver credenciais (Google Cloud "Interno" / Microsoft).
+- A skill `security-review` foi aplicada; nenhuma falha de alta confiança. Nota de baixa confiança: o bloqueio de IPs internos no IMAP só vê endereços literais; um nome DNS que aponte para rede interna passaria. Resolver o DNS antes de conectar (Etapa 10).
+- Preços de IA em `.env` (`LLM_PRICE_*`) são estimativas configuráveis; conferir os preços atuais antes de usar em produção.
+- Conferência visual das telas novas com login não foi feita no navegador (leitura da senha local foi bloqueada); cobertas por testes de rota e pelo aceite ponta a ponta.
+- Arquivos `.mbox` enviados ficam em `data/mbox/<workspace>/` (fora do Git).
 
 ## Etapa 0 — o que foi feito
 - Docker Compose com `app`, `worker`, `postgres`, `redis`, `mailpit`, `rspamd`; `.env.example` documentado; `.env` fora do Git.

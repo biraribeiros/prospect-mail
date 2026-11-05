@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Hunter · Prospector{% endblock %}
+{% block content %}
+<h1>Hunter</h1>
+<p class="sub">Encontra quem você já conhece (pelos seus emails), empresas e sinais de oportunidade.</p>
+<div class="grid">
+  <a class="card" href="/hunter/caixas" style="text-decoration:none;color:inherit"><div class="num">{{ boxes }}</div><h3>Caixas de email</h3><p>Conecte caixas ou envie um arquivo .mbox para o sistema ler.</p></a>
+  <a class="card" href="/hunter/contatos" style="text-decoration:none;color:inherit"><div class="num">{{ contacts }}</div><h3>Contatos encontrados</h3><p>Ordenados pela força do relacionamento (nota de 0 a 100).</p></a>
+  <a class="card" href="/hunter/ruido" style="text-decoration:none;color:inherit"><h3>Filtro de ruído</h3><p>Robôs, bancos, redes sociais e notificações que o sistema ignora.</p></a>
+</div>
+<h2>Em construção</h2>
+<div class="card"><h3>Empresas e sinais de oportunidade — Sprint 2 e 3 — Em construção.</h3><p>Busca de empresas por perfil, vagas, notícias e eliminação de duplicados.</p></div>
+{% endblock %}

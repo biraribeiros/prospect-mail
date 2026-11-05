@@ -190,7 +190,56 @@ class Contact(Base):
     email_status: Mapped[str] = mapped_column(Text, default="nao_verificado", server_default="nao_verificado")
     relationship_score: Mapped[int | None] = mapped_column(Integer)
     origem: Mapped[str | None] = mapped_column(Text)
+    # Etapa 1 (Hunter: caixas de email) — só metadados e trecho de assinatura, nunca o corpo do email
+    telefone: Mapped[str | None] = mapped_column(Text)
+    site: Mapped[str | None] = mapped_column(Text)
+    assinatura_trecho: Mapped[str | None] = mapped_column(Text)
+    dominio_tipo: Mapped[str | None] = mapped_column(Text)  # corporativo | pessoal
+    ultima_interacao: Mapped[datetime | None] = mapped_column(TS)
+    qtd_enviados: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
+    qtd_recebidos: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
     criado_em: Mapped[datetime] = mapped_column(TS, server_default=func.now())
+
+
+class MailboxAccount(Base):
+    """Caixa de email conectada (leitura pelo Hunter; envio na Etapa 6). Segredos ficam cifrados em tokens_enc."""
+
+    __tablename__ = "mailbox_account"
+    __table_args__ = (
+        CheckConstraint("tipo in ('gmail','graph','imap','mbox')", name="ck_mailbox_tipo"),
+        CheckConstraint("uso in ('hunter','envio','ambos')", name="ck_mailbox_uso"),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspace.id", ondelete="CASCADE"), index=True)
+    tipo: Mapped[str] = mapped_column(Text)
+    nome: Mapped[str] = mapped_column(Text)
+    uso: Mapped[str] = mapped_column(Text, default="hunter", server_default="hunter")
+    dominio: Mapped[str | None] = mapped_column(Text)
+    tokens_enc: Mapped[str | None] = mapped_column(Text)
+    limite_diario: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
+    fase_aquecimento: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
+    saude: Mapped[str] = mapped_column(Text, default="ok", server_default="ok")
+    cursor: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=EMPTY_OBJ)
+    ultima_varredura: Mapped[datetime | None] = mapped_column(TS)
+    criado_em: Mapped[datetime] = mapped_column(TS, server_default=func.now())
+
+
+class MailInteraction(Base):
+    """Uma linha por (mensagem, contato). Guarda só metadados: data, direção e palavras-chave detectadas."""
+
+    __tablename__ = "mail_interaction"
+    __table_args__ = (
+        UniqueConstraint("mailbox_id", "message_key", "contact_id"),
+        CheckConstraint("direcao in ('enviado','recebido')", name="ck_interaction_direcao"),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspace.id", ondelete="CASCADE"), index=True)
+    mailbox_id: Mapped[int] = mapped_column(ForeignKey("mailbox_account.id", ondelete="CASCADE"), index=True)
+    contact_id: Mapped[int] = mapped_column(ForeignKey("contact.id", ondelete="CASCADE"), index=True)
+    message_key: Mapped[str] = mapped_column(Text)  # Message-ID do cabeçalho (ou hash, se não houver)
+    direcao: Mapped[str] = mapped_column(Text)
+    ocorrido_em: Mapped[datetime | None] = mapped_column(TS)
+    palavras_chave: Mapped[list[str]] = mapped_column(TextArray, server_default=EMPTY_ARRAY)
 
 
 class Evidence(Base):

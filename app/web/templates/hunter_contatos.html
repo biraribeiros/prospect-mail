@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Contatos · Prospector{% endblock %}
+{% block content %}
+<p><a href="/hunter">← Hunter</a></p>
+<div class="row" style="justify-content:space-between">
+  <div><h1>Contatos encontrados</h1><p class="sub">{{ total }} contato(s). A nota mostra a força do relacionamento (0–100): volume, conversa de mão dupla, recência e assuntos comerciais.</p></div>
+  <a class="btn" href="/hunter/contatos.csv?{{ qs }}">Baixar CSV</a>
+</div>
+<form method="get" class="card row" style="margin-bottom:14px">
+  <input type="text" name="q" value="{{ f.q }}" placeholder="Buscar por nome, email ou domínio" style="max-width:280px">
+  <select name="caixa"><option value="">Todas as caixas</option>{% for c in caixas %}<option value="{{ c.id }}" {{ 'selected' if f.caixa == c.id }}>{{ c.nome }}</option>{% endfor %}</select>
+  <select name="tipo"><option value="">Qualquer domínio</option><option value="corporativo" {{ 'selected' if f.tipo == 'corporativo' }}>Corporativo</option><option value="pessoal" {{ 'selected' if f.tipo == 'pessoal' }}>Pessoal (gmail, hotmail…)</option></select>
+  <select name="minimo"><option value="0">Qualquer nota</option>{% for n in (30, 50, 70) %}<option value="{{ n }}" {{ 'selected' if f.minimo == n }}>Nota ≥ {{ n }}</option>{% endfor %}</select>
+  <button class="btn primary">Filtrar</button>
+</form>
+<table>
+  <tr><th>Nota</th><th>Contato</th><th>Cargo</th><th>Enviados / recebidos</th><th>Última</th></tr>
+  {% for c in rows %}
+  <tr>
+    <td><b>{{ c.relationship_score if c.relationship_score is not none else "—" }}</b></td>
+    <td>{{ c.nome_completo or "(sem nome)" }}<br><span class="hint">{{ c.email }} {% if c.dominio_tipo == "pessoal" %}<span class="tag">pessoal</span>{% endif %}</span></td>
+    <td>{{ c.cargo or "—" }}{% if c.telefone %}<br><span class="hint">{{ c.telefone }}</span>{% endif %}</td>
+    <td>{{ c.qtd_enviados }} / {{ c.qtd_recebidos }}</td>
+    <td>{{ c.ultima_interacao.strftime("%d/%m/%Y") if c.ultima_interacao else "—" }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5">Nenhum contato com esses filtros. Adicione uma <a href="/hunter/caixas">caixa de email</a> para começar.</td></tr>
+  {% endfor %}
+</table>
+{% if paginas > 1 %}
+<div class="row" style="margin-top:14px">
+  {% if pagina > 1 %}<a class="btn small" href="?{{ qs }}&pagina={{ pagina - 1 }}">← Anterior</a>{% endif %}
+  <span class="hint">Página {{ pagina }} de {{ paginas }}</span>
+  {% if pagina < paginas %}<a class="btn small" href="?{{ qs }}&pagina={{ pagina + 1 }}">Próxima →</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

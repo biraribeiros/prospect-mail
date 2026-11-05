@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Caixas de email · Prospector{% endblock %}
+{% block content %}
+<p><a href="/hunter">← Hunter</a></p>
+<h1>Caixas de email</h1>
+<p class="sub">O sistema lê só <b>quem escreveu, para quem, quando</b> e o trecho da assinatura. O texto dos emails não é guardado.</p>
+
+<table>
+  <tr><th>Caixa</th><th>Tipo</th><th>Última varredura</th><th>Resultado</th><th></th></tr>
+  {% for it in items %}
+  <tr>
+    <td>{{ it.mb.nome }}<br><span class="hint">{{ it.emails|join(", ") }}</span></td>
+    <td><span class="tag">{{ it.mb.tipo }}</span></td>
+    <td>{{ it.job.iniciado_em.strftime("%d/%m/%Y %H:%M") if it.job else "ainda não" }}</td>
+    <td>{% if it.job %}{% if it.job.status == "concluido" %}{{ it.job.contadores.contatos_novos }} novos, {{ it.job.contadores.interacoes_novas }} mensagens{% else %}{{ it.job.status }}{% endif %}{% else %}—{% endif %}</td>
+    <td>{% if ctx.can_edit %}
+      <div class="row">
+        <form method="post" action="/hunter/caixas/{{ it.mb.id }}/varrer"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn small">Varrer agora</button></form>
+        <form method="post" action="/hunter/caixas/{{ it.mb.id }}/excluir" onsubmit="return confirm('Remover esta caixa? Os contatos já encontrados continuam na lista.')"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn small danger">Remover</button></form>
+      </div>{% endif %}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5">Nenhuma caixa ainda. Use uma das opções abaixo.</td></tr>
+  {% endfor %}
+</table>
+
+{% if ctx.can_edit %}
+<h2>Adicionar caixa</h2>
+<div class="grid">
+  <form class="card" method="post" action="/hunter/caixas/mbox" enctype="multipart/form-data">
+    <h3>Enviar arquivo (.mbox ou .eml)</h3>
+    <p>Exporte a pasta do Thunderbird, Apple Mail ou Gmail (Takeout) e envie aqui.</p>
+    <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+    <label for="m_nome">Nome (opcional)</label><input type="text" id="m_nome" name="nome">
+    <label for="m_email">Seu email (dono da caixa)</label><input type="text" id="m_email" name="email" required placeholder="voce@suaempresa.com.br">
+    <label for="m_pasta">O arquivo contém</label>
+    <select id="m_pasta" name="pasta"><option value="misto">Recebidos e enviados</option><option value="recebidos">Só recebidos</option><option value="enviados">Só enviados</option></select>
+    <label for="m_file">Arquivo</label><input type="file" id="m_file" name="file" accept=".mbox,.eml" required>
+    <div class="actions"><button class="btn primary">Enviar e varrer</button></div>
+  </form>
+  <form class="card" method="post" action="/hunter/caixas/imap">
+    <h3>Conectar por IMAP</h3>
+    <p>Serve para Locaweb, HostGator e a maioria dos provedores. Use a senha do email ou uma senha de app.</p>
+    <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+    <label for="i_nome">Nome (opcional)</label><input type="text" id="i_nome" name="nome">
+    <label for="i_host">Servidor</label><input type="text" id="i_host" name="host" required placeholder="imap.seudominio.com.br">
+    <div class="row"><div style="flex:1"><label for="i_port">Porta</label><input type="text" id="i_port" name="port" value="993"></div>
+    <div style="flex:1"><label for="i_sec">Segurança</label><select id="i_sec" name="security"><option value="ssl">SSL</option><option value="starttls">STARTTLS</option></select></div></div>
+    <label for="i_user">Usuário (email)</label><input type="text" id="i_user" name="user" required autocomplete="off">
+    <label for="i_pass">Senha</label><input type="password" id="i_pass" name="password" required autocomplete="new-password">
+    <div class="actions"><button class="btn primary">Testar e conectar</button></div>
+  </form>
+  <div class="card"><h3>Gmail e Outlook</h3><p>Conexão com um clique — em construção. Precisa de credenciais do Google Cloud / Microsoft. Por enquanto, use IMAP ou envie um arquivo.</p></div>
+</div>
+{% endif %}
+{% endblock %}
