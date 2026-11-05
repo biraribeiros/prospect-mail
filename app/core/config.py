@@ -43,6 +43,27 @@ class Settings(BaseSettings):
     crawl_delay_s: float = 1.0
     crawl_timeout_s: float = 10.0
     crawl_max_pages: int = 5
+    # Etapa 2b — sinais. Modelos de URL de feeds RSS de vagas separados por vírgula; {q} = nome da empresa.
+    signals_job_rss_urls: str = ""
+    # Etapa 4 — validação de emails: reacher | millionverifier | zerobounce | nenhum
+    verifier_provider: str = "nenhum"
+    verifier_api_key: str = ""
+    reacher_url: str = ""
+    verifier_cache_days: int = 90
+    verifier_catchall_days: int = 7
+    verifier_max_parallel: int = 3
+    # Etapa 6 — envio
+    unsubscribe_secret: str = ""  # se vazio, usa SECRET_KEY
+    public_base_url: str = "http://localhost:8000"
+    rspamd_url: str = "http://rspamd:11334"
+    breaker_bounce_rate: float = 0.03
+    breaker_min_sent: int = 20
+    # Etapa 8 — CRM externo (webhook). Vazio = os eventos ficam registrados como "sem_destino".
+    crm_webhook_url: str = ""
+    crm_webhook_secret: str = ""
+    # Etapa 10
+    backup_dir: str = "data/backups"
+    job_stuck_hours: int = 8
 
     @property
     def dry_run(self) -> bool:

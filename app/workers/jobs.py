@@ -52,6 +52,13 @@ async def crawl_sites_job(ctx, ws: int, icp_id: int | None = None, limite: int =
         return run_crawl(session, ws, _icp(session, ws, icp_id), limite)
 
 
+async def collect_signals_job(ctx, ws: int, icp_id: int | None = None, limite: int = 200) -> dict:
+    from app.hunter.signals.service import run_signals
+
+    with SessionLocal() as session:
+        return run_signals(session, ws, _icp(session, ws, icp_id), limite)
+
+
 async def scan_mailbox_job(ctx, mailbox_id: int) -> dict:
     with SessionLocal() as session:
         mailbox = session.get(MailboxAccount, mailbox_id)

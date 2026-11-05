@@ -8,7 +8,7 @@ from sqlalchemy import exists, func, select
 
 from app.core.config import get_settings
 from app.core.db import SessionLocal
-from app.core.models import Company, Contact, Evidence, IcpProfile, JobRun
+from app.core.models import Company, Contact, Evidence, IcpProfile, JobRun, OpportunitySignal
 from app.hunter.companies import cnpj as cnpj_mod
 from app.hunter.companies import places as places_mod
 from app.web.deps import Ctx, current_ctx, editor_ctx, flash, render
@@ -16,8 +16,9 @@ from app.workers.queue import enqueue
 
 router = APIRouter(prefix="/hunter")
 PAGE = 50
-TIPOS = ("coleta_cnpj", "coleta_places", "coleta_sites")
-NOMES = {"coleta_cnpj": "Base CNPJ", "coleta_places": "Google Places", "coleta_sites": "Leitura de sites"}
+TIPOS = ("coleta_cnpj", "coleta_places", "coleta_sites", "coleta_sinais")
+NOMES = {"coleta_cnpj": "Base CNPJ", "coleta_places": "Google Places", "coleta_sites": "Leitura de sites",
+         "coleta_sinais": "Sinais comerciais"}
 
 
 def _icps(ctx: Ctx) -> list[IcpProfile]:
@@ -75,7 +76,8 @@ def _company_filters(q: str, uf: str, fonte: str, site: str, cnpj: str):
 @router.get("/empresas")
 def empresas(request: Request, q: str = "", uf: str = "", fonte: str = "", site: str = "", cnpj: str = "",
              pagina: int = 1, ctx: Ctx = Depends(current_ctx)):
-    base = select(Company).where(Company.workspace_id == ctx.workspace_id, *_company_filters(q, uf, fonte, site, cnpj))
+    base = select(Company).where(Company.workspace_id == ctx.workspace_id, Company.merged_into_id.is_(None),
+                                 *_company_filters(q, uf, fonte, site, cnpj))
     total = ctx.db.scalar(select(func.count()).select_from(base.subquery()))
     pagina = max(1, pagina)
     rows = ctx.db.scalars(base.order_by(Company.id.desc()).limit(PAGE).offset((pagina - 1) * PAGE)).all()
@@ -103,7 +105,24 @@ def empresa(company_id: int, request: Request, ctx: Ctx = Depends(current_ctx)):
                         .order_by(Evidence.campo, Evidence.id)).all()
     contatos = ctx.db.scalars(select(Contact).where(Contact.workspace_id == ctx.workspace_id,
                                                     Contact.company_id == c.id).order_by(Contact.id)).all()
-    return render(request, "hunter_empresa.html", ctx, ativo="hunter", c=c, ev=ev, contatos=contatos)
+    sinais = ctx.db.scalars(select(OpportunitySignal).where(
+        OpportunitySignal.workspace_id == ctx.workspace_id, OpportunitySignal.company_id == c.id)
+        .order_by(OpportunitySignal.detectado_em.desc())).all()
+    return render(request, "hunter_empresa.html", ctx, ativo="hunter", c=c, ev=ev, contatos=contatos, sinais=sinais)
+
+
+@router.get("/sinais")
+def sinais_lista(request: Request, tipo: str = "", pagina: int = 1, ctx: Ctx = Depends(current_ctx)):
+    conds = [OpportunitySignal.workspace_id == ctx.workspace_id]
+    if tipo:
+        conds.append(OpportunitySignal.tipo == tipo)
+    pagina = max(1, pagina)
+    rows = ctx.db.execute(select(OpportunitySignal, Company).join(Company, Company.id == OpportunitySignal.company_id)
+                          .where(*conds).order_by(OpportunitySignal.detectado_em.desc()).limit(PAGE)
+                          .offset((pagina - 1) * PAGE)).all()
+    tipos = [t for (t,) in ctx.db.execute(select(OpportunitySignal.tipo).where(
+        OpportunitySignal.workspace_id == ctx.workspace_id).distinct().order_by(OpportunitySignal.tipo))]
+    return render(request, "hunter_sinais.html", ctx, ativo="hunter", rows=rows, tipo=tipo, tipos=tipos, pagina=pagina)
 
 
 # ---------- coleta ----------
@@ -166,6 +185,15 @@ async def coleta_sites(request: Request, icp_id: str = Form(""), limite: int = F
     icp = _icp(ctx, int(icp_id)) if icp_id.strip().isdigit() else None
     await _queue(request, "crawl_sites_job", ctx.workspace_id, icp.id if icp else None, max(1, min(limite, 2000)),
                  ok="Leitura de sites iniciada. Acompanhe abaixo.")
+    return RedirectResponse("/hunter/coleta", status_code=303)
+
+
+@router.post("/coleta/sinais")
+async def coleta_sinais(request: Request, icp_id: str = Form(""), limite: int = Form(200),
+                        ctx: Ctx = Depends(editor_ctx)):
+    icp = _icp(ctx, int(icp_id)) if icp_id.strip().isdigit() else None
+    await _queue(request, "collect_signals_job", ctx.workspace_id, icp.id if icp else None, max(1, min(limite, 2000)),
+                 ok="Busca de sinais iniciada (vagas e notícias). Acompanhe abaixo.")
     return RedirectResponse("/hunter/coleta", status_code=303)
 
 

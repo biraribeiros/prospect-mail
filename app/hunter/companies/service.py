@@ -101,7 +101,7 @@ def run_places(session: Session, ws: int, icp: IcpProfile, client: places_mod.Pl
 # ---------- sites ----------
 def crawl_targets(session: Session, ws: int, icp: IcpProfile | None, limit: int) -> list[Company]:
     stmt = select(Company).where(Company.workspace_id == ws, Company.site.is_not(None), Company.site != "",
-                                 Company.site_status == "nao_lido")
+                                 Company.site_status == "nao_lido", Company.merged_into_id.is_(None))
     if icp is not None:
         if icp.ufs:
             stmt = stmt.where(Company.uf.in_([u.upper() for u in icp.ufs]))
