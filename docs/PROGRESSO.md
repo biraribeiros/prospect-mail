@@ -6,8 +6,8 @@ Leia também: [VALIDACAO_DO_PLANO.md](VALIDACAO_DO_PLANO.md) (correções aprova
 |---|---|---|---|
 | Planejamento e validação | ✅ feito | main | Correções F1–F17 aprovadas (Prompt Mestre v3.1) |
 | 0 Fundação | ✅ feita e unida | `sprint-00-fundacao` (PR #1) | 66 testes; aceite conferido |
-| 1 Caixas de email | ✅ feita (aguarda PR) | `sprint-01-caixas-email` | 149 testes no total (83 novos); aceite ponta a ponta conferido (ver abaixo) |
-| 2a Empresas | ⬜ | | |
+| 1 Caixas de email | ✅ feita e unida | `sprint-01-caixas-email` (PR #2) | 149 testes; aceite ponta a ponta conferido |
+| 2a Empresas | ✅ feita (aguarda PR) | `sprint-02a-empresas` | 225 testes no total (76 novos); aceite ponta a ponta conferido (ver abaixo) |
 | 2b Sinais | ⬜ | | Decisão: fonte de vagas |
 | 3 Duplicados | ⬜ | | |
 | 4 Validar emails | ⬜ | | Começa com API paga; Reacher só com VPS |
@@ -19,6 +19,33 @@ Leia também: [VALIDACAO_DO_PLANO.md](VALIDACAO_DO_PLANO.md) (correções aprova
 | 8 Respostas e CRM | ⬜ | | Decisão: qual CRM |
 | 9 Métricas | ⬜ | | |
 | 10 Produção | ⬜ | | |
+
+## Etapa 2a — o que foi feito (Hunter: empresas)
+- Migração `0003`: tabela `api_cache` (cache de 30 dias das buscas pagas) e novas colunas em `company` (telefone, endereço, situação da leitura do site).
+- **Base CNPJ da Receita:** lê os arquivos de `data/cnpj/` (.zip ou extraídos), filtra pelo perfil (CNAE, UF, cidade, porte, só matrizes ativas) em 3 passadas, sem carregar a base inteira no banco. Empresas viram `company`; sócios e administradores (pessoas físicas) viram `contact` com `contact_role`. O email cadastral da Receita fica só como evidência de baixa confiança (30%).
+- **Google Places (New):** Text Search com máscara mínima de campos, paginação, cache de 30 dias, **estimativa de custo antes de rodar** com confirmação, e limite de gasto por execução (`PLACES_MAX_USD_PER_RUN`). Empresas já conhecidas são reconhecidas pelo `place_id` ou pelo domínio.
+- **Leitor de sites:** home + páginas de contato/sobre/equipe; respeita `robots.txt` e `Crawl-delay`, 1 requisição/s por domínio, timeout de 10 s, limite de 2 MB por página; extrai emails (inclusive `[at]`, `&#64;` e Cloudflare), telefones, WhatsApp, CNPJ (só válidos) e redes sociais. Sites que dependem de JavaScript ficam marcados como "precisa JS".
+- **Proteção contra SSRF** (`app/core/netsafe.py`): só http/https nas portas 80/443, só endereços públicos, conferido em cada redirecionamento.
+- Telas: Hunter → Empresas (filtros, origem de cada dado, página da empresa com todas as evidências) e Coleta (3 fontes, estimativa de custo, progresso em tempo real por SSE, coletas recentes). Links vindos de dados externos só são clicáveis se forem http(s).
+- Tudo com evidência (fonte, link, confiança) e registro de conformidade; jobs idempotentes, com custo registrado.
+
+### Como validar a Etapa 2a
+```bash
+docker compose run --rm app pytest tests/hunter/ -v
+docker compose exec app python scripts/verificar_etapa2a.py   # aceite ponta a ponta (arquivos fictícios; limpa no final)
+```
+Resultado (05/11/2026): ICP "CNAE 70.20-4, SP, ME/EPP" → 2 empresas com CNPJ, razão social e evidência em cada campo, 3 sócios como contatos, conformidade para cada registro, progresso em tempo real, estimativa de custo exibida; sem chave do Google a busca paga não roda; reimportar não duplica.
+
+### Decisões e pendências da Etapa 2a
+- Fonte de Maps: **só Google Places** (decisão do dono). Apify fica para depois, se o custo pedir.
+- **Para usar de verdade:** (1) chave em `GOOGLE_PLACES_API_KEY` no `.env`; (2) arquivos *Empresas*, *Estabelecimentos*, *Sócios* e *Municípios* da base CNPJ em `data/cnpj/` (dezenas de GB descompactados). Os preços do Places no `.env` são estimativas: conferir a tabela atual do Google.
+- Não foi testada a leitura real de um site público nem a chamada real ao Google (testes com respostas simuladas, sem gastar). Fazer um teste curto com poucos sites e 1 consulta antes de uso em escala.
+- Filtro de porte **MEI** não é aplicado (a Receita guarda isso em outro arquivo, Simples); o painel avisa.
+- Playwright não foi incluído: sites que exigem JavaScript só são marcados. Reavaliar se for muitos.
+- Limite conhecido do SSRF: entre a checagem do DNS e a conexão, o DNS poderia mudar (rebinding). Para fechar, conectar direto no IP validado (Etapa 10); a mesma checagem deve ser aplicada ao IMAP.
+- Empresas repetidas entre fontes (CNPJ × Maps × site) ainda não são juntadas: é a Etapa 3.
+- Revisão de segurança desta etapa feita lendo o código (SSRF do crawler, links vindos de dados externos, autorização por workspace, caminhos de arquivo, chave da API); nenhuma falha de alta confiança. A skill `security-review` não foi rodada nesta etapa.
+- `app/core/csvio.py` ainda importa UF/porte de `app/web/forms.py` (acoplamento antigo, anotado na Etapa 0).
 
 ## Etapa 1 — o que foi feito (Hunter: caixas de email)
 - Migração `0002`: tabelas `mailbox_account` (config cifrada em `tokens_enc`) e `mail_interaction` (só metadados: data, direção, palavras-chave); novas colunas em `contact` (telefone, site, trecho de assinatura, tipo de domínio, contagens, última interação).

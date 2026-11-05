@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ c.nome_fantasia or c.razao_social or "Empresa" }} · Prospector{% endblock %}
+{% block content %}
+<p><a href="/hunter/empresas">← Empresas</a></p>
+<h1>{{ c.nome_fantasia or c.razao_social or c.dominio or "(sem nome)" }}</h1>
+<p class="sub">{{ c.razao_social or "" }}</p>
+<div class="grid">
+  <div class="card"><h3>Dados</h3>
+    <p>CNPJ: {{ c.cnpj|cnpj_fmt or "—" }}</p><p>Cidade: {{ c.municipio or "—" }}{{ "/" ~ c.uf if c.uf }}</p>
+    <p>Porte: {{ c.porte or "—" }} · Situação: {{ c.situacao_cadastral or "—" }}</p>
+    <p>CNAE: {{ c.cnae_principal or "—" }}</p><p>Telefone: {{ c.telefone or "—" }}</p><p>Endereço: {{ c.endereco or "—" }}</p>
+    <p>Site: {% if c.site %}<a href="{{ c.site|safe_url }}" target="_blank" rel="noopener noreferrer nofollow">{{ c.site }}</a>{% else %}—{% endif %} <span class="tag">{{ c.site_status|replace("_", " ") }}</span></p></div>
+  <div class="card"><h3>Contatos ({{ contatos|length }})</h3>
+    {% for p in contatos %}<p>{{ p.nome_completo or p.email }}{% if p.cargo %} — {{ p.cargo }}{% endif %}{% if p.email and p.nome_completo %}<br><span class="hint">{{ p.email }}</span>{% endif %}</p>{% else %}<p>Nenhum contato ainda.</p>{% endfor %}</div>
+</div>
+<h2>De onde vem cada dado</h2>
+<table>
+  <tr><th>Campo</th><th>Valor</th><th>Fonte</th><th>Confiança</th><th>Quando</th></tr>
+  {% for e in ev %}
+  <tr><td>{{ e.campo|replace("_", " ") }}</td><td>{{ e.valor }}</td>
+    <td>{% if e.url and e.url|safe_url != "#" %}<a href="{{ e.url|safe_url }}" target="_blank" rel="noopener noreferrer nofollow">{{ e.fonte|replace("_", " ") }}</a>{% else %}{{ e.fonte|replace("_", " ") }}{% endif %}</td>
+    <td>{{ "%.0f"|format(e.confianca|float * 100) }}%</td><td>{{ e.coletado_em.strftime("%d/%m/%Y") }}</td></tr>
+  {% else %}<tr><td colspan="5">Sem evidências registradas.</td></tr>{% endfor %}
+</table>
+{% endblock %}

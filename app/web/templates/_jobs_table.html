@@ -1,0 +1,15 @@
+<table>
+  <tr><th>Quando</th><th>Fonte</th><th>Situação</th><th>Resultado</th><th>Custo</th><th></th></tr>
+  {% for j in jobs %}
+  <tr>
+    <td>{{ j.iniciado_em.strftime("%d/%m %H:%M") }}</td>
+    <td>{{ nomes.get(j.tipo, j.tipo) }}</td>
+    <td>{% if j.status == "em_andamento" %}<span class="tag">em andamento…</span>{% elif j.status == "concluido" %}<span class="tag">concluída</span>{% else %}<span class="tag">falhou</span>{% endif %}</td>
+    <td>{% set c = j.contadores or {} %}{% if c.erro %}{{ c.erro }}{% else %}{{ c.criadas or c.contatos_novos or c.sites or c.empresas_importadas or 0 }} {{ "empresas novas" if j.tipo != "coleta_sites" else "sites lidos" }}{% endif %}</td>
+    <td>US$ {{ "%.3f"|format(j.custo_usd|float) }}</td>
+    <td><a href="/hunter/coleta/{{ j.id }}">Detalhes</a></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="6">Nenhuma coleta ainda.</td></tr>
+  {% endfor %}
+</table>

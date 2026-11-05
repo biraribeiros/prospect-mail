@@ -65,7 +65,11 @@ def hunter_home(request: Request, ctx: Ctx = Depends(current_ctx)):
     boxes = ctx.db.scalar(select(func.count()).select_from(MailboxAccount).where(MailboxAccount.workspace_id == ws))
     contacts = ctx.db.scalar(select(func.count()).select_from(Contact).where(
         Contact.workspace_id == ws, Contact.qtd_enviados + Contact.qtd_recebidos > 0))
-    return render(request, "hunter_home.html", ctx, ativo="hunter", boxes=boxes, contacts=contacts)
+    from app.core.models import Company
+
+    companies = ctx.db.scalar(select(func.count()).select_from(Company).where(Company.workspace_id == ws))
+    return render(request, "hunter_home.html", ctx, ativo="hunter", boxes=boxes, contacts=contacts,
+                  companies=companies)
 
 
 # ---------- caixas ----------

@@ -38,8 +38,21 @@ def flash(request: Request, message: str, kind: str = "ok") -> None:
     request.session.setdefault("flash", []).append({"msg": message, "kind": kind})
 
 
+def safe_url(value: str | None) -> str:
+    """Só links http(s): evita 'javascript:' vindo de dados importados ou de sites de terceiros."""
+    v = (value or "").strip()
+    return v if v.lower().startswith(("http://", "https://")) else "#"
+
+
+def cnpj_fmt(value: str | None) -> str:
+    v = value or ""
+    return f"{v[:2]}.{v[2:5]}.{v[5:8]}/{v[8:12]}-{v[12:]}" if len(v) == 14 and v.isdigit() else v
+
+
 templates.env.globals["csrf"] = ensure_csrf
 templates.env.globals["pop_flash"] = pop_flash
+templates.env.filters["safe_url"] = safe_url
+templates.env.filters["cnpj_fmt"] = cnpj_fmt
 
 
 async def csrf_guard(request: Request) -> None:
