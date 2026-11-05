@@ -2,10 +2,11 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import func, select
 
-from app.core.models import (Company, Contact, MailboxAccount, MessageTemplate, Offer, OutboundMessage, SenderDomain, Suppression)
+from app.core.models import (Company, Contact, CrmEvent, Deal, InboundReply, MailboxAccount, MessageTemplate, Offer,
+                             OutboundMessage, SenderDomain, Suppression, Task)
 from app.core.security import decrypt_json, encrypt_json
 from app.disparo import breaker
 from app.disparo.compose import approve_sequence, discard_sequence
@@ -251,6 +252,80 @@ def modelo_excluir(tid: int, request: Request, ctx: Ctx = Depends(editor_ctx)):
     ctx.db.commit()
     flash(request, "Modelo excluído.")
     return RedirectResponse("/disparo/modelos", status_code=303)
+
+
+# ---------- Etapa 8: respostas, negócios, tarefas e CRM ----------
+ESTAGIOS = ["novo", "interessado", "reuniao", "proposta", "ganho", "perdido", "nutricao"]
+
+
+@router.get("/respostas")
+def respostas(request: Request, ctx: Ctx = Depends(current_ctx)):
+    ws = ctx.workspace_id
+    reps = ctx.db.execute(select(InboundReply, Contact).join(Contact, Contact.id == InboundReply.contact_id)
+                          .where(InboundReply.workspace_id == ws).order_by(InboundReply.id.desc()).limit(50)).all()
+    deals = ctx.db.execute(select(Deal, Contact, Company).join(Contact, Contact.id == Deal.contact_id)
+                           .outerjoin(Company, Company.id == Deal.company_id).where(Deal.workspace_id == ws)
+                           .order_by(Deal.atualizado_em.desc()).limit(100)).all()
+    tarefas = ctx.db.scalars(select(Task).where(Task.workspace_id == ws, Task.feita.is_(False)).order_by(Task.vence_em).limit(50)).all()
+    eventos = dict(ctx.db.execute(select(CrmEvent.status, func.count()).where(CrmEvent.workspace_id == ws).group_by(CrmEvent.status)).all())
+    return render(request, "disparo_respostas.html", ctx, ativo="disparo", reps=reps, deals=deals, tarefas=tarefas, eventos=eventos,
+                  estagios=ESTAGIOS)
+
+
+@router.post("/negocios/{deal_id:int}/estagio")
+def deal_estagio(deal_id: int, request: Request, estagio: str = Form(...), reuniao: str = Form(""), ctx: Ctx = Depends(editor_ctx)):
+    d = ctx.db.get(Deal, deal_id)
+    if d is None or d.workspace_id != ctx.workspace_id:
+        raise HTTPException(status_code=404)
+    if estagio not in ESTAGIOS:
+        raise HTTPException(status_code=422)
+    d.estagio, d.atualizado_em = estagio, datetime.now(timezone.utc)
+    if estagio == "reuniao" or reuniao:
+        try:
+            d.reuniao_em = datetime.fromisoformat(reuniao).replace(tzinfo=timezone.utc) if reuniao else datetime.now(timezone.utc)
+        except ValueError:
+            flash(request, "Data da reunião inválida (use AAAA-MM-DD).", "err")
+    ctx.db.commit()
+    return RedirectResponse("/disparo/respostas", status_code=303)
+
+
+@router.post("/tarefas/{task_id:int}/feita")
+def tarefa_feita(task_id: int, ctx: Ctx = Depends(editor_ctx)):
+    t = ctx.db.get(Task, task_id)
+    if t is None or t.workspace_id != ctx.workspace_id:
+        raise HTTPException(status_code=404)
+    t.feita = True
+    ctx.db.commit()
+    return RedirectResponse("/disparo/respostas", status_code=303)
+
+
+@router.post("/crm/reenviar")
+def crm_reenviar(request: Request, ctx: Ctx = Depends(editor_ctx)):
+    from app.disparo.crm import resend_pending
+
+    n = resend_pending(ctx.db, ctx.workspace_id)
+    ctx.db.commit()
+    flash(request, f"{n} evento(s) reenviado(s) ao CRM." if n else "Nada foi reenviado (confira CRM_WEBHOOK_URL no arquivo .env).")
+    return RedirectResponse("/disparo/respostas", status_code=303)
+
+
+@router.get("/funil.csv")
+def funil_csv(ctx: Ctx = Depends(current_ctx)):
+    import csv
+    import io
+
+    out = io.StringIO()
+    w = csv.writer(out)
+    w.writerow(["empresa", "contato", "email", "estagio", "reuniao_em", "criado_em", "aprendizado"])
+
+    def safe(v):
+        v = "" if v is None else str(v)
+        return "'" + v if v[:1] in ("=", "+", "-", "@", chr(9), chr(13)) else v
+    for d, ct, co in ctx.db.execute(select(Deal, Contact, Company).join(Contact, Contact.id == Deal.contact_id)
+                                    .outerjoin(Company, Company.id == Deal.company_id).where(Deal.workspace_id == ctx.workspace_id).order_by(Deal.id)):
+        w.writerow([safe(co.nome_fantasia or co.razao_social) if co else "", safe(ct.nome_completo), safe(ct.email), d.estagio,
+                    d.reuniao_em.date().isoformat() if d.reuniao_em else "", d.criado_em.date().isoformat(), safe(d.aprendizado)])
+    return Response(out.getvalue(), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="funil.csv"'})
 
 
 __all__ = ["router", "Company", "Suppression", "norm_domain", "Offer"]

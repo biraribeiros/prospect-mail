@@ -142,3 +142,31 @@ async def compose_job(ctx, ws: int) -> dict:
 
     with SessionLocal() as session:
         return run_compose(session, ws)
+
+
+async def poll_replies_job(ctx) -> dict:
+    """Lê as respostas e bounces de cada caixa de envio que tem IMAP configurado (a cada 10 minutos)."""
+    from datetime import datetime, timedelta, timezone
+
+    from sqlalchemy import select
+
+    from app.core.llm import build_llm
+    from app.core.models import MailboxAccount
+    from app.disparo.replies import poll_inbox
+    from app.hunter.mailbox.imap import ImapAdapter
+
+    total = {"caixas": 0, "respostas": 0, "bounces": 0}
+    with SessionLocal() as session:
+        for mb in session.scalars(select(MailboxAccount).where(MailboxAccount.uso.in_(("envio", "ambos")), MailboxAccount.pausada.is_(False))):
+            cfg = decrypt_json(mb.tokens_enc) if mb.tokens_enc else {}
+            im = cfg.get("imap")
+            if not im:
+                continue
+            r = poll_inbox(session, mb.workspace_id, ImapAdapter(im["host"], int(im.get("port", 993)), im["user"], im["password"],
+                                                                  im.get("security", "ssl")),
+                           datetime.now(timezone.utc) - timedelta(days=3), build_llm())
+            session.commit()
+            total["caixas"] += 1
+            total["respostas"] += r["respostas"]
+            total["bounces"] += r["bounces"]
+    return total

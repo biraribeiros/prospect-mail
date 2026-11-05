@@ -24,6 +24,7 @@ TZ_PADRAO = "America/Sao_Paulo"
 JANELA = (time(8, 0), time(18, 0))
 INTERVALO_MIN, INTERVALO_MAX = 3, 15  # minutos
 MAX_TENTATIVAS = 3
+DIAS_PASSO = {1: 0, 2: 4, 3: 10}  # sequência: dia 0 / 4 / 10
 FASES_AQUECIMENTO = (5, 15, 30, 50)  # envios por dia nas semanas 1 a 4 (depois da 4ª semana: 50)
 
 
@@ -136,9 +137,9 @@ def schedule_approved(session: Session, ws: int, now: datetime | None = None, rn
                            .order_by(OutboundMessage.passo, OutboundMessage.id)).all()
     rr = 0
 
-    def slot(mb: MailboxAccount, msg: OutboundMessage, tz: ZoneInfo) -> datetime | None:
-        """Primeiro horário livre desta caixa para esta mensagem (janela comercial + limite diário), ou None."""
-        t = next_window_start(max(livre[mb.id], msg.agendada_para or now), tz)
+    def slot(mb: MailboxAccount, floor: datetime, tz: ZoneInfo) -> datetime | None:
+        """Primeiro horário livre desta caixa a partir de 'floor' (janela comercial + limite diário), ou None."""
+        t = next_window_start(max(livre[mb.id], floor), tz)
         for _ in range(14):  # até 2 semanas à frente
             a, _b = day_bounds(t)
             key = (mb.id, a.isoformat())
@@ -152,8 +153,18 @@ def schedule_approved(session: Session, ws: int, now: datetime | None = None, rn
     for msg in pend:
         company = session.get(Company, msg.company_id) if msg.company_id else None
         tz = recipient_tz(company)
+        floor = msg.agendada_para or now
         ordem = boxes[rr:] + boxes[:rr]  # rodízio: empate de horário vai para a caixa seguinte à última usada
-        cand = [(t, i, mb) for i, mb in enumerate(ordem) if (t := slot(mb, msg, tz)) is not None]
+        if msg.passo > 1:  # seguimento: só depois do passo anterior enviado, na mesma conversa, no dia certo (0 / 4 / 10)
+            root = session.get(OutboundMessage, msg.thread_raiz_id) if msg.thread_raiz_id else None
+            prev = session.scalar(select(OutboundMessage).where(OutboundMessage.thread_raiz_id == msg.thread_raiz_id,
+                                                                OutboundMessage.passo == msg.passo - 1))
+            if root is None or root.enviada_em is None or prev is None or prev.status != "enviada":
+                continue
+            floor = max(floor, root.enviada_em + timedelta(days=DIAS_PASSO[msg.passo]))
+            mesma = [b for b in ordem if b.id == root.mailbox_id]
+            ordem = mesma or ordem
+        cand = [(t, i, mb) for i, mb in enumerate(ordem) if (t := slot(mb, floor, tz)) is not None]
         if not cand:
             out["adiadas_por_limite"] += 1
             continue

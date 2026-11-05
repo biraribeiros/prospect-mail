@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Respostas e CRM · Prospector{% endblock %}
+{% block content %}
+<p><a href="/disparo">← Disparo</a></p>
+<h1>Respostas, negócios e CRM</h1>
+<p class="sub">O sistema lê as respostas, classifica e executa a ação certa. Oportunidades interessadas vão ao seu CRM por webhook (sem duplicar).</p>
+<div class="grid">
+  {% for k in ["enviado", "pendente", "sem_destino", "falhou"] %}<div class="card"><div class="num">{{ eventos.get(k, 0) }}</div><h3>CRM: {{ k|replace("_", " ") }}</h3></div>{% endfor %}
+</div>
+{% if ctx.can_edit %}<form method="post" action="/disparo/crm/reenviar" style="margin:10px 0"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn small">Reenviar eventos pendentes ao CRM</button>
+  <a class="btn small" href="/disparo/funil.csv">Baixar funil (CSV)</a></form>{% endif %}
+
+<h2>Respostas recentes</h2>
+<table><tr><th>Quando</th><th>Quem</th><th>Classe</th><th>Ação</th><th>Trecho</th></tr>
+{% for r, c in reps %}<tr><td>{{ r.recebido_em.strftime("%d/%m %H:%M") }}</td><td>{{ c.nome_completo or c.email }}</td><td><span class="tag">{{ r.classe|replace("_", " ") }}</span></td>
+<td>{{ r.acao }}</td><td class="hint">{{ r.trecho[:120] }}</td></tr>{% else %}<tr><td colspan="5">Nenhuma resposta ainda.</td></tr>{% endfor %}</table>
+
+<h2>Negócios</h2>
+<table><tr><th>Empresa / contato</th><th>Estágio</th><th>Reunião</th></tr>
+{% for d, c, co in deals %}<tr><td>{{ (co.nome_fantasia or co.razao_social) if co else "" }}<br><span class="hint">{{ c.nome_completo or c.email }}</span></td>
+<td>{% if ctx.can_edit %}<form method="post" action="/disparo/negocios/{{ d.id }}/estagio" class="row"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+<select name="estagio" onchange="this.form.submit()">{% for e in estagios %}<option value="{{ e }}" {{ "selected" if e == d.estagio }}>{{ e }}</option>{% endfor %}</select></form>{% else %}{{ d.estagio }}{% endif %}</td>
+<td>{{ d.reuniao_em.strftime("%d/%m/%Y") if d.reuniao_em else "—" }}</td></tr>{% else %}<tr><td colspan="3">Nenhum negócio ainda.</td></tr>{% endfor %}</table>
+
+<h2>Tarefas</h2>
+<table><tr><th>Tarefa</th><th>Vence</th><th></th></tr>
+{% for t in tarefas %}<tr><td>{{ t.descricao }}</td><td>{{ t.vence_em.strftime("%d/%m %H:%M") if t.vence_em else "—" }}</td>
+<td>{% if ctx.can_edit %}<form method="post" action="/disparo/tarefas/{{ t.id }}/feita"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn small">Feita</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="3">Nenhuma tarefa pendente.</td></tr>{% endfor %}</table>
+{% endblock %}
