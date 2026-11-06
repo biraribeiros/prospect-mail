@@ -1,6 +1,7 @@
 """Etapa 6b: monta o email com os cabeçalhos obrigatórios (List-Unsubscribe RFC 8058, Message-ID próprio, texto puro)
 e o link de descadastro assinado."""
 import uuid
+from email import policy
 from email.message import EmailMessage
 from email.utils import formatdate
 
@@ -39,7 +40,8 @@ def build_email(*, from_addr: str, from_name: str | None, to_addr: str, subject:
                 message_id: str, in_reply_to: str | None = None, references: list[str] | None = None) -> EmailMessage:
     base = get_settings().public_base_url.rstrip("/")
     url = f"{base}/u/{make_unsub_token(ws, to_addr)}"
-    m = EmailMessage()
+    # linha longa permitida (até 998): o link assinado do List-Unsubscribe não pode ser quebrado nem codificado (RFC 8058)
+    m = EmailMessage(policy=policy.SMTP.clone(max_line_length=998))
     m["From"] = f"{from_name} <{from_addr}>" if from_name else from_addr
     m["To"] = to_addr
     m["Subject"] = subject

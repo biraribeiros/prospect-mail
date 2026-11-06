@@ -485,3 +485,14 @@ def test_disparo_isolamento_e_papeis(client, db, world):
     tk = token(client, "/disparo")
     assert client.post("/disparo/caixas", data={"csrf_token": tk, "email": "a@b.com"}).status_code == 403
     assert client.post("/disparo/liberar", data={"csrf_token": tk}).status_code == 403
+
+
+def test_list_unsubscribe_nao_e_codificado_nem_quebrado():
+    """Regressão (achada no aceite ao vivo): link longo era convertido em palavra codificada, e o RFC 8058 deixava de funcionar."""
+    msg = build_email(from_addr="contato@viaenvios.com.br", from_name="Equipe", to_addr="ana@cliente.com.br", subject="Uma ideia", body="Olá",
+                      ws=1, message_id="<a@viaenvios.com.br>")
+    linhas = msg.as_bytes().decode().splitlines()
+    cabecalho = [l for l in linhas[:linhas.index("")]]
+    assert not any("=?utf-8?" in l.lower() for l in cabecalho)
+    linha = next(l for l in cabecalho if l.startswith("List-Unsubscribe:"))
+    assert "/u/" in linha and "<mailto:contato@viaenvios.com.br" in linha

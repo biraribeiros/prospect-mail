@@ -7,18 +7,38 @@ Leia também: [VALIDACAO_DO_PLANO.md](VALIDACAO_DO_PLANO.md) (correções aprova
 | Planejamento e validação | ✅ feito | main | Correções F1–F17 aprovadas (Prompt Mestre v3.1) |
 | 0 Fundação | ✅ feita e unida | `sprint-00-fundacao` (PR #1) | 66 testes; aceite conferido |
 | 1 Caixas de email | ✅ feita e unida | `sprint-01-caixas-email` (PR #2) | 149 testes; aceite ponta a ponta conferido |
-| 2a Empresas | ✅ feita (aguarda PR) | `sprint-02a-empresas` | 225 testes no total (76 novos); aceite ponta a ponta conferido (ver abaixo) |
-| 2b Sinais | ⬜ | | Decisão: fonte de vagas |
-| 3 Duplicados | ⬜ | | |
-| 4 Validar emails | ⬜ | | Começa com API paga; Reacher só com VPS |
-| 5a Enriquecimento | ⬜ | | |
-| 5b Inteligência | ⬜ | | |
-| 6a Envio: cadastro | ⬜ | | Caixas SMTP via cPanel/Plesk; decidir domínios |
-| 6b Envio: agenda | ⬜ | | |
-| 7 Mensagens | ⬜ | | |
-| 8 Respostas e CRM | ⬜ | | Decisão: qual CRM |
-| 9 Métricas | ⬜ | | |
-| 10 Produção | ⬜ | | |
+| 2a Empresas | ✅ feita e unida | `sprint-02a-empresas` (PR #3) | 225 testes; aceite conferido |
+| 2b a 10 | ✅ feitas (PR único aguardando revisão) | `sprint-02b-ate-10-final` | Ver "Etapas 2b a 10" abaixo |
+
+Todas as etapas planejadas estão implementadas. Falta só o que depende de você (chaves, domínios, CRM) e o **piloto comercial real** (ver "Pendências finais").
+
+## Etapas 2b a 10 — o que foi feito (06/11/2026)
+Decisão do dono: executar tudo até o fim sem aprovar etapa por etapa; um PR único, um commit por etapa.
+- **2b Sinais:** vagas (página "trabalhe conosco" + RSS configurável), notícias (Google News RSS, só com o nome da empresa na manchete) e sinais do Maps; só grava com link verificável. LinkedIn/Indeed/Catho ficam para um fornecedor licenciado (interface `JobSource` pronta).
+- **3 Duplicados:** CNPJ → domínio → telefone → nome+cidade (pg_trgm ≥ 0,85, sem acento); CNPJs diferentes nunca se juntam; mesclagem desfazível; contador (CNAE 69 ou domínio em > 20 CNPJs) bloqueado para envio; tipo de email, departamento e papel de compra; CSV consolidado.
+- **4 Validação:** camadas (sintaxe → descartável → função → MX → SMTP → catch-all), Reacher/MillionVerifier/ZeroBounce, cache 90/7 dias, máx. 3 em paralelo, teste de porta 25. Sem verificador, nenhum email chega a "válido".
+- **5a Enriquecimento:** nome em cascata (equipe → parte local → IA só com certeza ≥ 0,6), padrões de email de sócios (só adotados se o verificador confirmar), validação cruzada, 4 notas + final, nota de vida, setor/gatilhos.
+- **5b Inteligência:** ofertas (modelos editáveis, sem cases inventados), hipóteses só com sinal + oferta + prova, fila de aprovação humana, Top 50.
+- **6 Envio:** caixas SMTP + domínios, pré-voo de DNS (SPF/DKIM/DMARC `quarantine|reject`/DNS reverso), `guard.py` (principal derivado das caixas lidas, subdomínios, tipo imutável após o 1º envio), aquecimento 5/15/30/50, agenda com rodízio, 3–15 min, janela seg–sex 8–18h no fuso do destinatário, List-Unsubscribe One-Click, supressão por mensagem, bounces (hard/soft), disjuntor 3%, descadastro por link.
+- **7 Mensagens:** 3 variações (IA com checagem anti-invenção, ou modelos), a mais diversa; bloqueios (variável vazia, MAIÚSCULAS, links, imagem, > 150 palavras, spam); Rspamd real (< 5); aprovação em lote.
+- **8 Respostas e CRM:** sequência dia 0/4/10 na mesma conversa, classificação (regras + IA, descadastro nunca depende da IA), ações por tipo, webhook assinado e idempotente, painel de negócios/tarefas, CSV do funil.
+- **9 Métricas:** 4 visões, teste entre ICPs (mínimo 40, reunião em 21 dias, Fisher exato), A/B por variante, resumo semanal por email. Abertura não é medida (texto puro, sem pixel) e o painel avisa.
+- **10 Produção:** limites por workspace, tarefas presas, backup diário (30 dias) + restauração, rotação de logs, renovação diária de tokens OAuth, página Operação (limites, pessoas/papéis, novo workspace), `docs/DEPLOY.md`, `docs/OPERACAO.md`, `docs/CARGA.md`.
+
+### Como validar tudo
+```bash
+docker compose run --rm app pytest            # suíte completa (~10 min)
+docker compose exec app python scripts/verificar_final.py   # aceite ao vivo: worker, Mailpit e Rspamd reais
+docker compose exec app python scripts/teste_carga.py 3000
+```
+Resultado: suíte completa verde; aceite ao vivo "tudo certo" (200 emails ao Mailpit, cabeçalhos RFC 8058, descadastro, resposta→negócio, disjuntor, alerta por email). O aceite achou um defeito real (List-Unsubscribe codificado em palavra RFC 2047), já corrigido e coberto por teste.
+
+### Pendências finais (honestas)
+- **Nada foi testado com serviços pagos/externos reais** (Google Places, Google News, verificadores, Claude, CRM, SMTP de hospedagem): todos têm testes com respostas simuladas. Fazer um teste curto de cada antes de escalar.
+- **Piloto comercial** (Etapa 10 pede): enviar de verdade, devagar, e medir antes de ampliar. `DRY_RUN` continua `true`.
+- **Você precisa fornecer:** chaves (`ANTHROPIC_API_KEY`, `GOOGLE_PLACES_API_KEY`, `VERIFIER_API_KEY`), domínios secundários + caixas SMTP + DNS, serviços/preços/cases reais em Inteligência → Ofertas, escolha do CRM (`CRM_WEBHOOK_URL`), servidor (VPS) quando for produção.
+- Limites conhecidos: envio por API Gmail/Microsoft não existe (usa SMTP; OAuth só para leitura); verificação de host SMTP/IMAP só barra IPs literais internos (DNS rebinding → fechar com conexão por IP validado); limite de contatos não cobre importação CSV; LGPD adiada (decisão do dono); `anthropic-skills:via-context` não foi usada nas ofertas padrão (são modelos genéricos para editar).
+- Revisão de segurança feita lendo o código (descadastro público assinado e isento de CSRF só em `/u/`, escape de templates, links `safe_url`, fórmulas em CSV, cifra de senhas, isolamento por workspace nos testes); a skill `security-review` não foi executada.
 
 ## Etapa 2a — o que foi feito (Hunter: empresas)
 - Migração `0003`: tabela `api_cache` (cache de 30 dias das buscas pagas) e novas colunas em `company` (telefone, endereço, situação da leitura do site).
