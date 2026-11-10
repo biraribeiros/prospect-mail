@@ -14,7 +14,7 @@
 <div class="row" style="margin:14px 0;display:flex;gap:10px;flex-wrap:wrap">
   <form method="post" action="/filtro/validar" class="card" style="flex:1;min-width:260px">
     <h3>Validar emails</h3>
-    <p>Verificador: <b>{{ provedor if provedor != "nenhum" else "nenhum (só checagens locais)" }}</b>. Para ao primeiro problema: sintaxe → descartável → conta de função → servidor → SMTP → catch-all.</p>
+    <p>Quem já escreveu para você vira válido sozinho. Verificador: <b>{{ provedor if provedor != "nenhum" else "nenhum (só checagens locais)" }}</b>. Para ao primeiro problema: sintaxe → descartável → conta de função → servidor → SMTP → catch-all.</p>
     <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
     <label for="lim">Máximo de emails</label><input type="text" id="lim" name="limite" value="500">
     <label style="display:inline-flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" name="refazer" value="sim"> Refazer também os já verificados</label>
@@ -25,6 +25,14 @@
     <p>Descobre nome, cargo e departamento e calcula 4 notas (empresa, contato, email, oportunidade) mais a nota final.</p>
     <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
     <div class="actions"><button class="btn primary">Enriquecer contatos</button></div>
+  </form>
+  <form method="post" action="/filtro/liberar-manual" class="card" style="flex:1;min-width:260px">
+    <h3>Liberar manualmente</h3>
+    <p>Para a sua lista curada, sem verificador: você decide que os contatos podem receber. O sistema ainda barra o que é ruim de verdade (sintaxe, descartável, domínio sem servidor de email, lista de supressão). Endereço que não existe vira devolução; acima de 3% o envio pausa sozinho.</p>
+    <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+    <label for="lib_o">De onde</label>
+    <select id="lib_o" name="origem"><option value="">Todos os pendentes</option>{% for v, nome, n in pendentes %}<option value="{{ v }}">{{ nome }} ({{ n }})</option>{% endfor %}</select>
+    <div class="actions"><button class="btn primary" onclick="return confirm('Liberar estes contatos para envio sem confirmar se o endereço existe?')">Liberar para envio</button></div>
   </form>
 </div>
 {% endif %}

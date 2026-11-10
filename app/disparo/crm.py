@@ -6,6 +6,7 @@ O corpo é assinado com HMAC-SHA256 (cabeçalho X-Prospector-Signature) para o C
 import hashlib
 import hmac
 import json
+import smtplib
 from datetime import datetime, timezone
 
 import httpx
@@ -13,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.mailer import send_mail
 from app.core.models import Company, Contact, CrmEvent, Deal
 
 MAX_TENTATIVAS = 3
@@ -33,6 +35,38 @@ def sign(body: bytes, secret: str) -> str:
     return hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
 
 
+def _limpa_titulo(t: str) -> str:
+    return " ".join(t.replace("@", "").replace("#", "").split())  # '@' e '#' no assunto viram menção/etiqueta no Trello
+
+
+def trello_card(ev: CrmEvent, base_url: str) -> tuple[str, str]:
+    """(título, descrição) do cartão. O assunto do email vira o título e o corpo vira a descrição no Trello."""
+    p = ev.payload
+    empresa = ((p.get("empresa") or {}).get("nome")) or "empresa sem nome"
+    ct = p.get("contato") or {}
+    rotulo = ev.chave.split(":")[-1].replace("_", " ").capitalize()
+    titulo = _limpa_titulo(f"{rotulo}: {empresa} - {ct.get('nome') or ct.get('email') or ''}")[:200]
+    co = p.get("empresa") or {}
+    linhas = [f"Contato: {ct.get('nome') or '-'}" + (f" ({ct['cargo']})" if ct.get("cargo") else ""),
+              f"Email: {ct.get('email') or '-'}", f"Telefone: {ct.get('telefone') or '-'}",
+              f"Empresa: {empresa}" + (f" - {co['municipio']}/{co['uf']}" if co.get("municipio") else ""),
+              f"Site: {co.get('site') or '-'}", f"Estágio: {p.get('estagio') or '-'}", "", "Resposta:", p.get("resposta") or "-", "",
+              f"Ver no Prospector: {base_url.rstrip('/')}/disparo/respostas"]
+    return titulo, chr(10).join(linhas)
+
+
+def _send_trello(ev: CrmEvent, s) -> CrmEvent:
+    ev.tentativas += 1
+    ev.http_status = None
+    try:
+        titulo, corpo = trello_card(ev, s.public_base_url)
+        send_mail([s.trello_board_email], titulo, corpo)
+        ev.status = "enviado"
+    except (OSError, smtplib.SMTPException):
+        ev.status = "falhou"
+    return ev
+
+
 def send_event(session: Session, ws: int, deal: Deal, evento: str, trecho: str = "", http: httpx.Client | None = None) -> CrmEvent:
     """Registra e envia. A chave (workspace, deal, evento) garante que o mesmo evento não gera duas oportunidades no CRM."""
     s = get_settings()
@@ -44,6 +78,8 @@ def send_event(session: Session, ws: int, deal: Deal, evento: str, trecho: str =
         ev = CrmEvent(workspace_id=ws, deal_id=deal.id, chave=chave, payload=build_payload(session, deal, evento, trecho))
         session.add(ev)
         session.flush()
+    if s.trello_board_email:  # destino principal: cartão no Trello por email (sem API)
+        return _send_trello(ev, s)
     if not s.crm_webhook_url:
         ev.status = "sem_destino"
         return ev

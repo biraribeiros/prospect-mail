@@ -33,6 +33,26 @@ Decisão do dono: sem API e sem configuração em serviços externos para trazer
 - Tudo entra como "não verificado", com evidência (`lista_texto` 0,6 / `extensao_navegador` 0,4) e registro de conformidade; filtro "origem" em Hunter → Contatos.
 - Testes: 14 novos (`tests/hunter/test_entrada.py`) + teste do Gmail "Todos os e-mails"; extensão testada ponta a ponta no Node contra o sistema no ar (achar, fila, repetidos, chave errada). Não testada dentro do Chrome real.
 
+### Decisões do dono (10/11/2026) — plano para os primeiros envios
+- **Meta:** testar com uma lista manual e iniciar envios reais o quanto antes, em ritmo de aquecimento (5/15/30/50 por caixa/dia; ~40/dia com várias caixas).
+- **Google Places:** fora. **2b Sinais:** testar com dados reais; se não funcionar, desligar (não é necessário para enviar).
+- **Empresas (2a):** o importador lê direto os arquivos oficiais da Receita em `data/cnpj/` (hoje vazia). Não precisa de carregador de terceiros; falta baixar os arquivos.
+- **Mensagens:** manuais por enquanto (caixa de formulário estilo WordPress, com abas Visual e Código, HTML ou texto). Automação com IA fica para depois. Etapas 5a/5b/7 ficam sem uso nesse modo.
+- **CRM:** só Trello por enquanto. O **CRM próprio é a próxima tarefa (não agora)** — ver "Como ligar um CRM" abaixo.
+- **Feito em 10/11/2026 (guia em [CAMPANHAS.md](CAMPANHAS.md)):**
+  - **Campanha manual** (Disparo → Campanhas): editor com abas Visual e Código, HTML ou texto; HTML limpo (só marcas seguras) com versão em texto puro (`multipart/alternative`); variáveis; conferência, prévia e nota de spam (Rspamd); gera uma mensagem por contato válido (sem repetir quem foi contatado em 90 dias, sem supressão, máx. por domínio); aprovação só por admin/aprovador; depois o agendador existente cuida do envio. Migração `0007`.
+  - **Regra do válido:** quem já escreveu para você vira válido ao validar (camada `historico`); **Liberar manualmente** no Filtro (camada `manual`) com as checagens locais mantidas.
+  - **Trello por e-mail** (`TRELLO_BOARD_EMAIL`): cada resposta "interessado" vira cartão, sem API; o webhook genérico continua como segundo destino. Novo `app/core/mailer.py` (SMTP real com login via `SMTP_*`) também usado pelos alertas e pelo resumo semanal.
+  - Testes: 19 novos (`tests/disparo/test_campanha.py`, `tests/filtro/test_liberacao.py`). Nunca testado com SMTP real nem com um quadro do Trello real.
+- **Pendente:** seguimento (dia 4 e 10) para campanha manual; automação com IA sobre a mesma campanha; CRM próprio (ver abaixo).
+
+### Como ligar um CRM (próprio ou outro) — ponto de conexão pronto
+Tudo passa por **uma função**: `app/disparo/crm.py::send_event(session, ws, deal, evento, trecho)`, chamada em `app/disparo/replies.py` quando uma resposta vira oportunidade ("interessado").
+1. **Mais fácil, sem código:** defina `CRM_WEBHOOK_URL` (e `CRM_WEBHOOK_SECRET`) no `.env`. O sistema envia um `POST` JSON com `evento`, `deal_id`, `estagio`, `empresa`, `contato`, `resposta`, assinado com HMAC-SHA256 em `X-Prospector-Signature` e com `Idempotency-Key` (o mesmo evento nunca gera duas oportunidades).
+2. **CRM próprio:** crie um endpoint que receba esse mesmo JSON e confira a assinatura. Nada mais muda no Prospector.
+3. **Outro destino (ex.: Trello):** troque só o trecho "envia" dentro de `send_event` (ou adicione um segundo destino). O registro (`CrmEvent`: sem_destino/enviado/falhou, tentativas) e a idempotência continuam valendo; eventos "sem_destino" podem ser reenviados depois.
+4. Os negócios e tarefas já ficam guardados no Prospector (`Deal`, `Task`), então um CRM próprio pode ler direto do mesmo banco.
+
 ### Como validar tudo
 ```bash
 docker compose run --rm app pytest            # suíte completa (~10 min)

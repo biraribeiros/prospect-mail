@@ -68,6 +68,16 @@ def local_layers(session: Session, ws: int, email: str, resolver: Resolver, veri
     return norm, None
 
 
+def history_valid(c: Contact, suppressed: set[str]) -> tuple[str, str, str] | None:
+    """Quem já escreveu para você tem endereço que existe: vale como válido, sem pagar verificador."""
+    if (c.qtd_recebidos or 0) <= 0 or not c.email:
+        return None
+    norm, fail = check_syntax(c.email)
+    if fail or norm in suppressed or norm.rsplit("@", 1)[1] in suppressed:
+        return None
+    return "valido", "historico", f"já escreveu para você ({c.qtd_recebidos} mensagem(ns) recebida(s))"
+
+
 def smtp_outcome(session: Session, ws: int, norm: str, res: VerifierResult, catch_days: int) -> tuple[str, str, str]:
     dom = norm.rsplit("@", 1)[1]
     if res.catch_all:
@@ -120,13 +130,19 @@ def run_validation(session: Session, ws: int, limit: int = 500, force: bool = Fa
         # etapa 1 (sequencial, barata): camadas locais; etapa 2: chamadas ao provedor com no máximo N em paralelo
         pend_api: list[tuple[Contact, str]] = []
         for i, c in enumerate(targets, start=1):
-            norm, local = local_layers(session, ws, c.email, resolver, verifier, suppressed)
-            if local:
-                apply_result(session, ws, c, *local, None, None)
-                tot[local[0]] += 1
+            hist = history_valid(c, suppressed)
+            if hist:  # já trocou emails com você: não precisa de verificador
+                apply_result(session, ws, c, *hist, None, None)
+                tot["valido"] += 1
                 tot["verificados"] += 1
             else:
-                pend_api.append((c, norm))
+                norm, local = local_layers(session, ws, c.email, resolver, verifier, suppressed)
+                if local:
+                    apply_result(session, ws, c, *local, None, None)
+                    tot[local[0]] += 1
+                    tot["verificados"] += 1
+                else:
+                    pend_api.append((c, norm))
             if i % 50 == 0:
                 session.commit()
                 progress({**tot, "total": len(targets)})
@@ -152,6 +168,35 @@ def run_validation(session: Session, ws: int, limit: int = 500, force: bool = Fa
     return run_tracked(session, ws, "validacao_emails", params, work)
 
 
+def release_manually(session: Session, ws: int, user_email: str, origem: str | None = None, limit: int = 2000,
+                     resolver: Resolver | None = None) -> dict:
+    """Libera para envio, por decisão humana, os contatos ainda não confirmados (não verificados ou arriscados).
+    Continua barrando o que é comprovadamente ruim: sintaxe, lista de supressão, descartável e domínio sem servidor de email."""
+    resolver = resolver or DnsResolver()
+    suppressed = {x.email_ou_dominio.lower() for x in session.scalars(select(Suppression).where(Suppression.workspace_id == ws))}
+    stmt = select(Contact).where(Contact.workspace_id == ws, Contact.email.is_not(None), Contact.bloqueado_envio.is_(False),
+                                 Contact.email_status.in_(("nao_verificado", "arriscado")))
+    if origem:
+        stmt = stmt.where(Contact.origem == origem)
+    out = {"liberados": 0, "reprovados": 0}
+    for c in session.scalars(stmt.order_by(Contact.id).limit(max(1, min(limit, 5000)))):
+        norm, fail = check_syntax(c.email)
+        if fail is None:
+            dom = norm.rsplit("@", 1)[1]
+            if norm in suppressed or dom in suppressed:
+                fail = LayerFail("supressao", "bloqueado", "está na lista de supressão")
+            else:
+                fail = check_disposable(norm) or check_mx(norm, resolver)
+        if fail:
+            apply_result(session, ws, c, fail.status, fail.camada, fail.motivo, None, None)
+            out["reprovados"] += 1
+        else:
+            apply_result(session, ws, c, "valido", "manual", f"liberado manualmente por {user_email}", None, "manual")
+            out["liberados"] += 1
+    session.flush()
+    return out
+
+
 def distribution(session: Session, ws: int) -> dict[str, int]:
     from sqlalchemy import func
 
@@ -160,4 +205,4 @@ def distribution(session: Session, ws: int) -> dict[str, int]:
     return {k: rows.get(k, 0) for k in ("valido", "arriscado", "invalido", "bloqueado", "nao_verificado")}
 
 
-__all__ = ["run_validation", "decide", "distribution", "pending_contacts", "LayerFail"]
+__all__ = ["run_validation", "decide", "distribution", "pending_contacts", "LayerFail", "release_manually", "history_valid"]

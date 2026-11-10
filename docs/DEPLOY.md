@@ -34,7 +34,9 @@ Abra com `nano .env` e ajuste **apenas** estes campos:
 | `DOMINIO` | o domínio do painel |
 | `PUBLIC_BASE_URL` | `https://` + o domínio do painel (vai nos links de descadastro) |
 | `VERIFIER_PROVIDER` / `VERIFIER_API_KEY` | `millionverifier` ou `zerobounce` + a chave |
-| `ANTHROPIC_API_KEY`, `GOOGLE_PLACES_API_KEY` | as chaves de API |
+| `ANTHROPIC_API_KEY`, `GOOGLE_PLACES_API_KEY` | as chaves de API (opcionais no modo manual: campanha escrita por você, sem IA) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | **um SMTP real para o email interno** (alertas do disjuntor, resumo semanal, cartão no Trello). Sem isso, esses avisos vão para o Mailpit e ninguém recebe. Use `starttls` (porta 587) ou `ssl` (465) |
+| `TRELLO_BOARD_EMAIL` | endereço secreto "Email para o quadro" do Trello (cada resposta "interessado" vira um cartão). Veja `docs/CAMPANHAS.md` |
 
 ## 4. Subir
 ```bash
@@ -50,7 +52,8 @@ Marque tudo antes de trocar `DRY_RUN=false`:
 - [ ] Domínio de envio **secundário** cadastrado e **DNS conferido** (SPF, DKIM, DMARC com `quarantine`/`reject`, DNS reverso — tudo ✔ em Disparo).
 - [ ] Caixa de envio criada (cPanel/Plesk/Google/Microsoft) e **aquecimento** respeitado (5 / 15 / 30 / 50 por dia nas semanas 1 a 4).
 - [ ] Envio de teste para você mesmo: chegou na caixa de entrada (não no spam) e o link de descadastro funciona.
-- [ ] Verificador de emails configurado (Filtro mostra o nome do verificador, sem aviso vermelho).
+- [ ] Verificador de emails configurado (Filtro mostra o nome do verificador, sem aviso vermelho) **ou** lista conferida por você e liberada manualmente (Filtro → Liberar manualmente).
+- [ ] Email interno testado: provoque um alerta (ou envie o resumo semanal) e confirme que chegou na sua caixa; confira que o cartão chega ao quadro do Trello.
 - [ ] Limites definidos em **Operação** (contatos, envios por dia, gasto mensal).
 - [ ] `FERNET_KEYS` e o arquivo `.env` guardados fora do servidor.
 - [ ] Um backup foi **restaurado em teste** (ver `docs/OPERACAO.md`).

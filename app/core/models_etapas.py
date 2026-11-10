@@ -141,6 +141,8 @@ class OutboundMessage(Base):
     variante: Mapped[str | None] = mapped_column(Text)
     assunto: Mapped[str] = mapped_column(Text)
     corpo: Mapped[str] = mapped_column(Text)
+    corpo_html: Mapped[str | None] = mapped_column(Text)  # campanha manual em HTML; vazio = só texto puro
+    campaign_id: Mapped[int | None] = mapped_column(ForeignKey("campaign.id", ondelete="SET NULL"), index=True)
     variacoes: Mapped[list[Any]] = mapped_column(JSONB, server_default=EMPTY_LIST)
     spam_score: Mapped[float | None] = mapped_column(Numeric(5, 2))
     status: Mapped[str] = mapped_column(Text, default="rascunho", server_default="rascunho")
@@ -227,3 +229,20 @@ class ExtensionToken(Base):
     criado_em: Mapped[datetime] = mapped_column(TS, server_default=func.now())
     ultimo_uso: Mapped[datetime | None] = mapped_column(TS)
     revogado: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
+
+
+# ---------------- Campanha manual (mensagem escrita por você, estilo editor do WordPress) ----------------
+class Campaign(Base):
+    __tablename__ = "campaign"
+    __table_args__ = (CheckConstraint("formato in ('html','texto')", name="ck_campaign_formato"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspace.id", ondelete="CASCADE"), index=True)
+    nome: Mapped[str] = mapped_column(Text)
+    assunto: Mapped[str] = mapped_column(Text, default="", server_default="")
+    formato: Mapped[str] = mapped_column(Text, default="html", server_default="html")
+    corpo_html: Mapped[str | None] = mapped_column(Text)  # já limpo (só marcas seguras)
+    corpo_texto: Mapped[str] = mapped_column(Text, default="", server_default="")  # versão em texto puro (derivada do HTML)
+    status: Mapped[str] = mapped_column(Text, default="rascunho", server_default="rascunho")
+    criado_por: Mapped[int | None] = mapped_column(ForeignKey("app_user.id", ondelete="SET NULL"))
+    criado_em: Mapped[datetime] = mapped_column(TS, server_default=func.now())
+    atualizado_em: Mapped[datetime] = mapped_column(TS, server_default=func.now(), onupdate=func.now())

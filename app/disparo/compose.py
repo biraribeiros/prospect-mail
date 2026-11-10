@@ -119,10 +119,10 @@ def rspamd_score(raw: bytes, url: str | None = None, http: httpx.Client | None =
         return None
 
 
-def spam_check(assunto: str, corpo: str, ws: int, checker=None) -> tuple[float, str]:
+def spam_check(assunto: str, corpo: str, ws: int, checker=None, html: str | None = None) -> tuple[float, str]:
     """(nota, origem). Usa o Rspamd quando disponível; senão uma estimativa local mais rígida."""
     msg = build_email(from_addr="contato@exemplo.com.br", from_name="Equipe", to_addr="destino@exemplo.com", subject=assunto, body=corpo,
-                      ws=ws, message_id="<teste@exemplo.com.br>")
+                      ws=ws, message_id="<teste@exemplo.com.br>", html=html)
     score = (checker or rspamd_score)(msg.as_bytes())
     return (score, "rspamd") if score is not None else (local_spam_score(assunto, corpo), "local")
 

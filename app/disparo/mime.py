@@ -36,8 +36,14 @@ def new_message_id(domain: str) -> str:
 FOOTER = "\n\n--\nSe não quiser mais receber mensagens como esta, é só acessar: {url}"
 
 
+FOOTER_HTML = ('<hr style="border:0;border-top:1px solid #dddddd;margin:24px 0 8px">'
+               '<p style="font-size:12px;color:#666666">Se não quiser mais receber mensagens como esta, acesse: '
+               '<a href="{url}">{url}</a></p>')
+
+
 def build_email(*, from_addr: str, from_name: str | None, to_addr: str, subject: str, body: str, ws: int,
-                message_id: str, in_reply_to: str | None = None, references: list[str] | None = None) -> EmailMessage:
+                message_id: str, in_reply_to: str | None = None, references: list[str] | None = None,
+                html: str | None = None) -> EmailMessage:
     base = get_settings().public_base_url.rstrip("/")
     url = f"{base}/u/{make_unsub_token(ws, to_addr)}"
     # linha longa permitida (até 998): o link assinado do List-Unsubscribe não pode ser quebrado nem codificado (RFC 8058)
@@ -54,4 +60,10 @@ def build_email(*, from_addr: str, from_name: str | None, to_addr: str, subject:
     m["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
     m["Auto-Submitted"] = "no"
     m.set_content(body.rstrip() + FOOTER.format(url=url))
+    if html:  # campanha manual: texto puro + HTML na mesma mensagem (o leitor de email escolhe)
+        from html import escape
+
+        from app.disparo.htmlmail import wrap_html
+
+        m.add_alternative(wrap_html(html + FOOTER_HTML.format(url=escape(url, quote=True))), subtype="html")
     return m

@@ -6,6 +6,7 @@
 {% if pausa %}<div class="msg err"><b>Envio PAUSADO pelo disjuntor.</b> {{ pausa.motivo }}
   {% if ctx.papel == "admin" %}<form method="post" action="/disparo/liberar" style="display:inline"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn small">Liberar envio</button></form>{% endif %}</div>{% endif %}
 <div class="grid">
+  <a class="card" href="/disparo/campanhas" style="text-decoration:none;color:inherit"><h3>Campanhas</h3><p>Escreva a mensagem num editor (Visual ou Código), escolha quem recebe e aprove.</p></a>
   <a class="card" href="/disparo/mensagens" style="text-decoration:none;color:inherit"><div class="num">{{ fila.get("rascunho", 0) }}</div><h3>Aguardando aprovação</h3><p>Mensagens escritas, esperando você.</p></a>
   <div class="card"><div class="num">{{ fila.get("agendada", 0) }}</div><h3>Agendadas</h3><p>{{ fila.get("aprovada", 0) }} aprovadas esperando horário.</p></div>
   <div class="card"><div class="num">{{ fila.get("enviada", 0) }}</div><h3>Enviadas</h3><p>Últimas 24 h: {{ enviadas24 }} (bounces: {{ bounces24 }}, {{ "%.1f"|format(taxa24 * 100) }}%).</p></div>

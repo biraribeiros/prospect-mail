@@ -237,7 +237,7 @@ def send_due(session: Session, ws: int, sender: Sender | None = None, now: datet
         root = session.get(OutboundMessage, msg.thread_raiz_id) if msg.thread_raiz_id and msg.thread_raiz_id != msg.id else None
         email = build_email(from_addr=cfg.get("from") or cfg.get("user") or f"contato@{dom.nome}", from_name=cfg.get("from_name"),
                             to_addr=ct.email, subject=msg.assunto, body=msg.corpo, ws=ws, message_id=mid,
-                            in_reply_to=root.message_id if root and root.message_id else None)
+                            in_reply_to=root.message_id if root and root.message_id else None, html=msg.corpo_html)
         try:
             sender.send(mb, cfg, email)
         except Exception as e:  # noqa: BLE001 - falha de SMTP: tenta de novo mais tarde, no máximo 3 vezes

@@ -3,13 +3,13 @@ avisa no painel e por email aos administradores. Só um administrador libera."""
 import smtplib
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from email.message import EmailMessage
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.config import get_settings
+from app.core.mailer import send_mail
 from app.core.models import AppUser, OutboundMessage, Workspace, WorkspaceMember
 
 
@@ -36,14 +36,9 @@ def admin_emails(session: Session, ws: int) -> list[str]:
 
 
 def default_alert(to: list[str], subject: str, body: str) -> None:
-    s = get_settings()
-    msg = EmailMessage()
-    msg["From"], msg["To"], msg["Subject"] = "alertas@prospector.local", ", ".join(to), subject
-    msg.set_content(body)
     try:
-        with smtplib.SMTP(s.smtp_host, s.smtp_port, timeout=10) as c:
-            c.send_message(msg)
-    except OSError:
+        send_mail(to, subject, body)
+    except (OSError, smtplib.SMTPException):
         pass  # sem servidor de alerta: o aviso no painel continua valendo
 
 

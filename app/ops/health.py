@@ -2,13 +2,13 @@
 import smtplib
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from email.message import EmailMessage
 from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.mailer import send_mail
 from app.core.models import JobRun, MailboxAccount
 from app.core.security import decrypt_json
 from app.disparo.breaker import admin_emails
@@ -19,13 +19,9 @@ def _alert(session: Session, ws: int | None, subject: str, body: str) -> None:
     to = admin_emails(session, ws) if ws else []
     if not to:
         return
-    msg = EmailMessage()
-    msg["From"], msg["To"], msg["Subject"] = "alertas@prospector.local", ", ".join(to), f"[Prospector] {subject}"
-    msg.set_content(body)
     try:
-        with smtplib.SMTP(s.smtp_host, s.smtp_port, timeout=10) as c:
-            c.send_message(msg)
-    except OSError:
+        send_mail(to, f"[Prospector] {subject}", body)
+    except (OSError, smtplib.SMTPException):
         pass
 
 

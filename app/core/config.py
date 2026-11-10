@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     retention_days: int = 730
     smtp_host: str = "localhost"
     smtp_port: int = 1025
+    smtp_security: str = "none"  # none | starttls | ssl  (email interno: alertas, resumo semanal, Trello)
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "alertas@prospector.local"
     # IA (Claude) — usada só como reserva na leitura de assinaturas; sem chave, fica desligada.
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-haiku-5-5"
@@ -61,6 +65,8 @@ class Settings(BaseSettings):
     # Etapa 8 — CRM externo (webhook). Vazio = os eventos ficam registrados como "sem_destino".
     crm_webhook_url: str = ""
     crm_webhook_secret: str = ""
+    # Trello sem API: endereço de "enviar email para o quadro" (Trello > menu do quadro > Mais > Email para o quadro). É secreto.
+    trello_board_email: str = ""
     # Etapa 10
     backup_dir: str = "data/backups"
     job_stuck_hours: int = 8

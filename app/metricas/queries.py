@@ -1,12 +1,12 @@
 """Etapa 9: as 4 visões (aquisição, abordagem, conversão, inteligência), teste entre ICPs, A/B e relatório semanal."""
 import smtplib
 from datetime import datetime, timedelta, timezone
-from email.message import EmailMessage
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.mailer import send_mail
 from app.core.models import (Company, Contact, Deal, Hypothesis, IcpProfile, InboundReply, JobRun, Offer, OpportunitySignal,
                              OutboundMessage, Workspace)
 from app.disparo import breaker
@@ -171,13 +171,8 @@ def send_weekly_report(session: Session, ws: int) -> int:
     to = breaker.admin_emails(session, ws)
     if not to:
         return 0
-    s = get_settings()
-    msg = EmailMessage()
-    msg["From"], msg["To"], msg["Subject"] = "relatorios@prospector.local", ", ".join(to), "[Prospector] Resumo da semana"
-    msg.set_content(texto)
     try:
-        with smtplib.SMTP(s.smtp_host, s.smtp_port, timeout=10) as c:
-            c.send_message(msg)
-    except OSError:
+        send_mail(to, "[Prospector] Resumo da semana", texto)
+    except (OSError, smtplib.SMTPException):
         return 0
     return len(to)
