@@ -50,7 +50,17 @@
     <label for="i_pass">Senha</label><input type="password" id="i_pass" name="password" required autocomplete="new-password">
     <div class="actions"><button class="btn primary">Testar e conectar</button></div>
   </form>
-  <div class="card"><h3>Gmail e Outlook</h3><p>Conexão com um clique — em construção. Precisa de credenciais do Google Cloud / Microsoft. Por enquanto, use IMAP ou envie um arquivo.</p></div>
+  <form class="card" method="post" action="/hunter/caixas/imap">
+    <h3>Gmail (só email e senha de app)</h3>
+    <p>Sem API e sem configuração no Google. O sistema lê <b>todos</b> os emails (recebidos, enviados e arquivados) só para descobrir contatos, em modo leitura.</p>
+    <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+    <input type="hidden" name="host" value="imap.gmail.com"><input type="hidden" name="port" value="993"><input type="hidden" name="security" value="ssl">
+    <label for="g_user">Seu Gmail</label><input type="text" id="g_user" name="user" required placeholder="voce@gmail.com" autocomplete="off">
+    <label for="g_pass">Senha de app (16 letras)</label><input type="password" id="g_pass" name="password" required autocomplete="new-password">
+    <p class="hint">Não é a senha normal do Gmail. Crie a senha de app em <b>myaccount.google.com/apppasswords</b> (precisa da verificação em duas etapas ligada). Leva 1 minuto. Contas de empresa (Workspace) podem ter isso bloqueado pelo administrador.</p>
+    <div class="actions"><button class="btn primary">Conectar Gmail</button></div>
+  </form>
+  <div class="card"><h3>Outlook</h3><p>Use a opção IMAP (outlook.office365.com, porta 993) ou envie um arquivo.</p></div>
 </div>
 {% endif %}
 {% endblock %}

@@ -212,3 +212,18 @@ class CrmEvent(Base):
     payload: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=EMPTY_OBJ)
     tentativas: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
     criado_em: Mapped[datetime] = mapped_column(TS, server_default=func.now())
+
+
+# ---------------- Entrada simples: extensão do navegador ----------------
+class ExtensionToken(Base):
+    """Chave da extensão do navegador. Só o hash fica guardado; a chave aparece uma única vez, ao ser criada."""
+
+    __tablename__ = "extension_token"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspace.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("app_user.id", ondelete="CASCADE"))
+    nome: Mapped[str] = mapped_column(Text, default="Extensão do navegador")
+    token_hash: Mapped[str] = mapped_column(Text, unique=True)
+    criado_em: Mapped[datetime] = mapped_column(TS, server_default=func.now())
+    ultimo_uso: Mapped[datetime | None] = mapped_column(TS)
+    revogado: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))

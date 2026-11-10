@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Extensão do navegador · Prospector{% endblock %}
+{% block content %}
+<p><a href="/hunter">← Hunter</a></p>
+<h1>Extensão do navegador</h1>
+<p class="sub">Enquanto você navega (Google, Maps, sites de empresas, LinkedIn público…), a extensão anota os emails que aparecem na página e <b>envia direto para o Prospector</b>. Eles entram como contatos “não verificados”, prontos para o <a href="/filtro">Filtro</a>. Ela envia só o endereço de email e o endereço da página, nunca o conteúdo.</p>
+
+{% if nova_chave %}
+<div class="card" style="border-color:#2e7d32">
+  <h3>Sua chave (aparece só agora)</h3>
+  <p>Copie e cole na extensão. Se perder, revogue e gere outra.</p>
+  <input type="text" readonly value="{{ nova_chave }}" onclick="this.select()" style="font-family:monospace">
+</div>
+{% endif %}
+
+<div class="grid">
+  <div class="card">
+    <h3>1. Baixar e instalar</h3>
+    <p><a class="btn primary" href="/hunter/extensao/baixar">Baixar extensão (.zip)</a></p>
+    <ol>
+      <li>Descompacte o .zip em uma pasta que você não vai apagar.</li>
+      <li>No Chrome, abra <b>chrome://extensions</b> e ligue o <b>Modo do desenvolvedor</b> (canto superior direito).</li>
+      <li>Clique em <b>Carregar sem compactação</b> e escolha a pasta <b>prospector-extensao</b>.</li>
+      <li>Fixe a extensão na barra do navegador (ícone de quebra-cabeça).</li>
+    </ol>
+  </div>
+  <div class="card">
+    <h3>2. Conectar</h3>
+    <ol>
+      <li>Gere uma chave abaixo.</li>
+      <li>Clique na extensão, em <b>Configurar</b>, cole o endereço deste sistema (padrão: http://localhost:8000) e a chave.</li>
+      <li>Clique em <b>Testar conexão</b>.</li>
+    </ol>
+    <p class="hint">Use <b>Coletar desta página</b> quando quiser, ou ligue a <b>coleta automática</b> para anotar cada página que você abrir (o Chrome pede permissão para ler os sites nesse momento).</p>
+  </div>
+</div>
+
+<h2>Chaves</h2>
+<table>
+  <tr><th>Criada em</th><th>Último uso</th><th></th></tr>
+  {% for c in chaves %}
+  <tr>
+    <td>{{ c.criado_em.strftime("%d/%m/%Y %H:%M") }}</td>
+    <td>{{ c.ultimo_uso.strftime("%d/%m/%Y %H:%M") if c.ultimo_uso else "nunca" }}</td>
+    <td>{% if ctx.can_edit %}<form method="post" action="/hunter/extensao/{{ c.id }}/revogar" onsubmit="return confirm('Revogar esta chave? A extensão que a usa para de enviar.')"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn small danger">Revogar</button></form>{% endif %}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="3">Nenhuma chave ainda.</td></tr>
+  {% endfor %}
+</table>
+{% if ctx.can_edit %}
+<form method="post" action="/hunter/extensao/chave" style="margin-top:12px"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn primary">Gerar nova chave</button></form>
+{% endif %}
+<p class="hint">Quem tem a chave consegue adicionar contatos ao seu workspace. Não compartilhe. O que a extensão coleta fica em <a href="/hunter/contatos?origem=extensao_navegador">Contatos → Extensão do navegador</a>.</p>
+{% endblock %}

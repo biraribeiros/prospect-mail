@@ -25,6 +25,14 @@ Decisão do dono: executar tudo até o fim sem aprovar etapa por etapa; um PR ú
 - **9 Métricas:** 4 visões, teste entre ICPs (mínimo 40, reunião em 21 dias, Fisher exato), A/B por variante, resumo semanal por email. Abertura não é medida (texto puro, sem pixel) e o painel avisa.
 - **10 Produção:** limites por workspace, tarefas presas, backup diário (30 dias) + restauração, rotação de logs, renovação diária de tokens OAuth, página Operação (limites, pessoas/papéis, novo workspace), `docs/DEPLOY.md`, `docs/OPERACAO.md`, `docs/CARGA.md`.
 
+### Entrada simples de emails (10/11/2026)
+Decisão do dono: sem API e sem configuração em serviços externos para trazer emails. Guia em [EXTENSAO.md](EXTENSAO.md).
+- **Gmail por senha de app (IMAP):** cartão em Hunter → Caixas, sem Google Cloud. Para Gmail lê a pasta "Todos os e-mails" (recebidos, enviados e arquivados; sem spam e lixeira). O login por OAuth/API do Google foi descartado e removido.
+- **Extensão do Chrome** (`app/extensao/`, baixada pelo sistema em .zip): coleta manual ou automática, envia só email + endereço da página (sem parâmetros) para `POST /api/extensao/emails`, autenticada por chave (hash no banco, mostrada uma vez, revogável; migração `0006`). Não clica nem navega sozinha.
+- **Importar lista de texto** (Hunter → Importar lista): qualquer texto ou arquivo (txt, csv, html, eml, docx, xlsx, doc antigo); PDF recusado com mensagem; tira duplicados, ruído, nome de imagem e emails das próprias caixas; respeita o limite de contatos; mesma lista duas vezes não duplica.
+- Tudo entra como "não verificado", com evidência (`lista_texto` 0,6 / `extensao_navegador` 0,4) e registro de conformidade; filtro "origem" em Hunter → Contatos.
+- Testes: 14 novos (`tests/hunter/test_entrada.py`) + teste do Gmail "Todos os e-mails"; extensão testada ponta a ponta no Node contra o sistema no ar (achar, fila, repetidos, chave errada). Não testada dentro do Chrome real.
+
 ### Como validar tudo
 ```bash
 docker compose run --rm app pytest            # suíte completa (~10 min)
@@ -37,7 +45,8 @@ Resultado: suíte completa verde; aceite ao vivo "tudo certo" (200 emails ao Mai
 - **Nada foi testado com serviços pagos/externos reais** (Google Places, Google News, verificadores, Claude, CRM, SMTP de hospedagem): todos têm testes com respostas simuladas. Fazer um teste curto de cada antes de escalar.
 - **Piloto comercial** (Etapa 10 pede): enviar de verdade, devagar, e medir antes de ampliar. `DRY_RUN` continua `true`.
 - **Você precisa fornecer:** chaves (`ANTHROPIC_API_KEY`, `GOOGLE_PLACES_API_KEY`, `VERIFIER_API_KEY`), domínios secundários + caixas SMTP + DNS, serviços/preços/cases reais em Inteligência → Ofertas, escolha do CRM (`CRM_WEBHOOK_URL`), servidor (VPS) quando for produção.
-- Limites conhecidos: envio por API Gmail/Microsoft não existe (usa SMTP; OAuth só para leitura); verificação de host SMTP/IMAP só barra IPs literais internos (DNS rebinding → fechar com conexão por IP validado); limite de contatos não cobre importação CSV; LGPD adiada (decisão do dono); `anthropic-skills:via-context` não foi usada nas ofertas padrão (são modelos genéricos para editar).
+- **Sem verificador de email, nenhum contato vira "válido" e nada é enviado.** Decisão pendente do dono: tratar como válido quem já trocou email com você (regra ainda não implementada) e/ou contratar um verificador.
+- Limites conhecidos: envio por API Gmail/Microsoft não existe (usa SMTP; a leitura de caixas é por IMAP/arquivo); verificação de host SMTP/IMAP só barra IPs literais internos (DNS rebinding → fechar com conexão por IP validado); limite de contatos não cobre importação CSV; LGPD adiada (decisão do dono); `anthropic-skills:via-context` não foi usada nas ofertas padrão (são modelos genéricos para editar).
 - Revisão de segurança feita lendo o código (descadastro público assinado e isento de CSRF só em `/u/`, escape de templates, links `safe_url`, fórmulas em CSV, cifra de senhas, isolamento por workspace nos testes); a skill `security-review` não foi executada.
 
 ## Etapa 2a — o que foi feito (Hunter: empresas)

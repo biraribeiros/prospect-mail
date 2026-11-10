@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Importar lista · Prospector{% endblock %}
+{% block content %}
+<p><a href="/hunter">← Hunter</a></p>
+<h1>Importar lista de texto</h1>
+<p class="sub">Cole um texto ou envie qualquer arquivo com emails no meio: .txt, .csv, .doc, .docx, .xlsx, .html, .eml… O sistema acha os emails sozinho, tira duplicados e robôs (no-reply, bancos, redes sociais) e guarda de onde vieram. Nada é enviado a ninguém: depois, passe pelo <a href="/filtro">Filtro</a>.</p>
+{% if error %}<div class="msg err">{{ error }}</div>{% endif %}
+
+{% if res %}
+<div class="card">
+  {% if res.arquivo_repetido %}
+  <h3>Esta lista já foi importada</h3><p>Importar a mesma lista duas vezes não muda nada. Encontrei {{ res.encontrados }} emails nela.</p>
+  {% elif res.encontrados == 0 %}
+  <h3>Não achei nenhum email</h3><p>Confira se o texto tem endereços completos (nome@empresa.com.br). PDF não é lido: copie o texto e cole na caixa.</p>
+  {% else %}
+  <h3>{{ res.novos }} contato(s) novo(s)</h3>
+  <p>Encontrados: <b>{{ res.encontrados }}</b> · já existiam: <b>{{ res.ja_existiam }}</b> · robôs e ruído ignorados: <b>{{ res.ruido }}</b> · inválidos: <b>{{ res.invalidos }}</b></p>
+  {% if res.limite %}<div class="msg err">O limite de contatos do workspace foi atingido; o resto não entrou. Um administrador pode aumentar em Operação.</div>{% endif %}
+  {% if res.amostra %}<p class="hint">Exemplos: {{ res.amostra|join(", ") }}</p>{% endif %}
+  <div class="row"><a class="btn primary" href="/hunter/contatos?origem=lista_texto">Ver contatos</a><a class="btn" href="/filtro">Ir para o Filtro</a></div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if ctx.can_edit %}
+<form class="card" method="post" action="/hunter/lista" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+  <label for="l_texto">Colar texto</label>
+  <textarea id="l_texto" name="texto" rows="8" placeholder="maria@empresa.com.br, joao@outraempresa.com.br ..."></textarea>
+  <label for="l_file">ou enviar arquivo (até 10 MB)</label>
+  <input type="file" id="l_file" name="file">
+  <p class="hint">Se escolher um arquivo, ele vale no lugar do texto colado. PDF não é lido.</p>
+  <div class="actions"><button class="btn primary">Importar</button></div>
+</form>
+{% endif %}
+{% endblock %}
