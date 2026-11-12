@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}{{ c.nome or "Nova campanha" }} · Prospector{% endblock %}
+{% block content %}
+<style>
+  .wp { border: 1px solid #c3c4c7; background: #fff; border-radius: 3px; }
+  .wp-tabs { display: flex; justify-content: flex-end; gap: 2px; padding: 6px 8px 0; background: #f0f0f1; }
+  .wp-tabs button { border: 1px solid #dcdcde; border-bottom: 0; background: #f6f7f7; padding: 6px 14px; cursor: pointer; font-size: 13px; }
+  .wp-tabs button.on { background: #fff; font-weight: 600; }
+  .wp-bar { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; padding: 6px 8px; background: #f6f7f7; border-bottom: 1px solid #dcdcde; }
+  .wp-bar button, .wp-bar select { border: 1px solid #dcdcde; background: #fff; padding: 4px 9px; cursor: pointer; font-size: 13px; border-radius: 3px; }
+  .wp-visual { min-height: 260px; padding: 14px 16px; outline: none; font: 15px/1.5 Arial, sans-serif; }
+  .wp-visual h2 { font-size: 20px; margin: .6em 0 .3em; } .wp-visual h3 { font-size: 17px; margin: .6em 0 .3em; }
+  .wp-visual blockquote { border-left: 3px solid #ccc; margin: .6em 0; padding-left: 12px; color: #555; }
+  .wp-code { width: 100%; min-height: 260px; box-sizing: border-box; border: 0; padding: 12px 14px; font: 13px/1.5 monospace; }
+  .msg.warn { background: #fff8e5; border-color: #f0c36d; color: #6b4e00; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; background: #eef; font-size: 12px; margin-right: 4px; }
+</style>
+<p><a href="/disparo/campanhas">← Campanhas</a></p>
+<h1>{{ c.nome if not novo else "Nova campanha" }}</h1>
+{% if dry %}<div class="msg">Modo seguro ligado: nada sai de verdade, tudo vai para o Mailpit (localhost:8025).</div>{% endif %}
+
+<form method="post" action="{{ '/disparo/campanhas' if novo else '/disparo/campanhas/' ~ c.id }}" id="form-camp">
+  <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+  <div class="row">
+    <div style="flex:1;min-width:220px"><label for="f_nome">Nome interno (só você vê)</label><input type="text" id="f_nome" name="nome" value="{{ c.nome }}" placeholder="Ex.: Apresentação Via - novembro"></div>
+    <div style="flex:2;min-width:280px"><label for="f_assunto">Assunto do email</label><input type="text" id="f_assunto" name="assunto" value="{{ c.assunto }}" maxlength="200" placeholder="Ex.: Uma ideia para a {{ '{{empresa}}' }}"></div>
+  </div>
+  <p style="margin:10px 0 6px">
+    <label style="display:inline-flex;gap:6px;align-items:center;font-weight:400"><input type="radio" name="formato" value="html" {{ 'checked' if c.formato == 'html' }}> HTML (editor visual, com texto puro junto)</label>
+    <label style="display:inline-flex;gap:6px;align-items:center;font-weight:400;margin-left:14px"><input type="radio" name="formato" value="texto" {{ 'checked' if c.formato == 'texto' }}> Só texto</label>
+  </p>
+
+  <div id="bloco-html" {{ 'hidden' if c.formato == 'texto' }}>
+    <div class="wp">
+      <div class="wp-tabs"><button type="button" id="tab-visual" class="on">Visual</button><button type="button" id="tab-codigo">Código</button></div>
+      <div class="wp-bar" id="barra">
+        <select id="bloco" title="Estilo do parágrafo"><option value="p">Parágrafo</option><option value="h2">Título</option><option value="h3">Subtítulo</option></select>
+        <button type="button" data-cmd="bold" title="Negrito"><b>B</b></button>
+        <button type="button" data-cmd="italic" title="Itálico"><i>I</i></button>
+        <button type="button" data-cmd="underline" title="Sublinhado"><u>U</u></button>
+        <button type="button" data-cmd="insertUnorderedList" title="Lista com marcadores">• Lista</button>
+        <button type="button" data-cmd="insertOrderedList" title="Lista numerada">1. Lista</button>
+        <button type="button" data-block="blockquote" title="Citação">❝</button>
+        <button type="button" data-cmd="justifyLeft" title="Alinhar à esquerda">⯇</button>
+        <button type="button" data-cmd="justifyCenter" title="Centralizar">≡</button>
+        <button type="button" data-cmd="justifyRight" title="Alinhar à direita">⯈</button>
+        <button type="button" id="b-link" title="Inserir link">🔗 Link</button>
+        <button type="button" data-cmd="removeFormat" title="Limpar formatação">Limpar</button>
+        <select id="b-var" title="Inserir variável"><option value="">Inserir variável…</option>{% for k, nome in variaveis.items() %}<option value="{{ k }}">{{ nome }}</option>{% endfor %}</select>
+      </div>
+      <div id="visual" class="wp-visual" contenteditable="true" spellcheck="true"></div>
+      <textarea id="codigo" name="corpo_html" class="wp-code" hidden spellcheck="false">{{ c.corpo_html or "" }}</textarea>
+    </div>
+    <p class="hint">Só marcas simples são mantidas: parágrafos, negrito, itálico, listas, títulos, citação, alinhamento e links. Imagem e vídeo não vão no corpo (use um link): email com imagem cai mais em spam.</p>
+  </div>
+  <div id="bloco-texto" {{ 'hidden' if c.formato != 'texto' }}>
+    <label for="f_texto">Mensagem em texto simples</label>
+    <textarea id="f_texto" name="corpo_texto_puro" rows="12" placeholder="Olá, {{ '{{primeiro_nome}}' }}.&#10;&#10;...">{{ c.corpo_texto if c.formato == 'texto' else "" }}</textarea>
+  </div>
+  <p class="hint">Variáveis: {% for k in variaveis %}<span class="pill">{{ '{{' ~ k ~ '}}' }}</span>{% endfor %} Contato sem o dado fica bloqueado para você revisar. O link para sair da lista é colocado no rodapé automaticamente.</p>
+  {% if ctx.can_edit %}<div class="actions"><button class="btn primary">Salvar campanha</button></div>{% endif %}
+</form>
+
+{% if not novo %}
+<h2>Conferência</h2>
+{% for e in erros %}<div class="msg err">{{ e }}</div>{% endfor %}
+{% for a in avisos %}<div class="msg warn">{{ a }}</div>{% endfor %}
+{% if not erros and not avisos %}<div class="msg">Nenhum problema encontrado nas regras básicas.</div>{% endif %}
+<div class="card">
+  <h3>Prévia (com dados de exemplo)</h3>
+  <p><b>Assunto:</b> {{ previa_assunto }}</p>
+  {% if previa_html %}<iframe sandbox srcdoc="{{ previa_html }}" style="width:100%;height:320px;border:1px solid #ddd;background:#fff"></iframe>
+  {% else %}<pre style="white-space:pre-wrap;background:#fff;border:1px solid #ddd;padding:10px">{{ previa_texto }}</pre>{% endif %}
+  {% if ctx.can_edit %}<form method="post" action="/disparo/campanhas/{{ c.id }}/conferir" style="margin-top:8px"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn">Conferir nota de spam (Rspamd)</button></form>{% endif %}
+</div>
+
+{% if ctx.can_edit %}
+<h2>Quem recebe</h2>
+<form class="card" method="post" action="/disparo/campanhas/{{ c.id }}/gerar">
+  <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+  <p>Entram só contatos com email <b>válido</b> (confirmado, ou liberado por você em <a href="/filtro">Filtro</a>). Ficam de fora: quem já foi contatado nos últimos 90 dias, a lista de supressão e o excesso de pessoas do mesmo domínio.</p>
+  <div class="row">
+    <div style="flex:2;min-width:220px"><label for="g_o">De onde</label>
+      <select id="g_o" name="origem"><option value="">Todos os válidos ({{ origens|sum(attribute=1) }})</option>{% for v, n in origens %}<option value="{{ v }}">{{ nomes.get(v, v or "sem origem") }} ({{ n }})</option>{% endfor %}</select></div>
+    <div style="flex:1;min-width:120px"><label for="g_l">Quantas mensagens</label><input type="text" id="g_l" name="limite" value="40"></div>
+    <div style="flex:1;min-width:120px"><label for="g_d">Máx. por domínio</label><input type="text" id="g_d" name="max_dominio" value="2"></div>
+  </div>
+  <div class="actions"><button class="btn primary">Gerar mensagens (rascunho)</button></div>
+  <p class="hint">Gerar de novo refaz só os rascunhos. O que já foi aprovado ou enviado não muda.</p>
+</form>
+{% endif %}
+
+<h2>Mensagens
+  {% for k in ("rascunho", "bloqueada", "aprovada", "agendada", "enviada", "falhou") %}{% if counts.get(k) %}<span class="pill">{{ k }}: {{ counts[k] }}</span>{% endif %}{% endfor %}</h2>
+<div class="row" style="margin-bottom:10px">
+  {% if ctx.papel in ("admin", "aprovador") and counts.get("rascunho") %}
+  <form method="post" action="/disparo/campanhas/{{ c.id }}/aprovar" onsubmit="return confirm('Aprovar {{ counts.get('rascunho') }} mensagem(ns)? O agendador começa a enviar nos horários permitidos.')"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn primary">Aprovar {{ counts.get("rascunho") }} mensagem(ns) e agendar</button></form>
+  {% elif counts.get("rascunho") %}<span class="hint">Só administradores e aprovadores aprovam o envio.</span>{% endif %}
+  {% if ctx.can_edit and (counts.get("rascunho") or counts.get("bloqueada")) %}
+  <form method="post" action="/disparo/campanhas/{{ c.id }}/descartar" onsubmit="return confirm('Descartar os rascunhos?')"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn danger">Descartar rascunhos</button></form>{% endif %}
+</div>
+<table>
+  <tr><th>Contato</th><th>Situação</th><th>Quando</th><th>Observação</th></tr>
+  {% for m, ct in msgs %}
+  <tr><td>{{ ct.nome_completo or "—" }}<br><span class="hint">{{ ct.email }}</span></td><td><span class="tag">{{ m.status }}</span></td>
+    <td>{{ (m.enviada_em or m.agendada_para).strftime("%d/%m %H:%M") if (m.enviada_em or m.agendada_para) else "—" }}</td><td class="hint">{{ m.motivo or "" }}</td></tr>
+  {% else %}<tr><td colspan="4">Nenhuma mensagem gerada ainda.</td></tr>{% endfor %}
+</table>
+{% endif %}
+
+<script>{% raw %}
+(function () {
+  var vis = document.getElementById('visual'), cod = document.getElementById('codigo'), form = document.getElementById('form-camp');
+  var tabV = document.getElementById('tab-visual'), tabC = document.getElementById('tab-codigo');
+  var blH = document.getElementById('bloco-html'), blT = document.getElementById('bloco-texto'), modo = 'visual', saved = null;
+  try { document.execCommand('defaultParagraphSeparator', false, 'p'); } catch (e) {}
+  vis.innerHTML = cod.value.trim() || '<p><br></p>';
+
+  document.addEventListener('selectionchange', function () {
+    var s = window.getSelection();
+    if (s.rangeCount && vis.contains(s.anchorNode)) saved = s.getRangeAt(0).cloneRange();
+  });
+  function foco() {
+    vis.focus();
+    if (saved) { var s = window.getSelection(); s.removeAllRanges(); s.addRange(saved); }
+  }
+  function bonito(h) { return h.replace(/<\/(p|li|h2|h3|ul|ol|blockquote|div)>/g, '</$1>\n'); }
+  function irCodigo() {
+    if (modo === 'visual') cod.value = bonito(vis.innerHTML);
+    modo = 'codigo'; vis.hidden = true; cod.hidden = false; tabC.className = 'on'; tabV.className = '';
+  }
+  function irVisual() {
+    if (modo === 'codigo') vis.innerHTML = cod.value.trim() || '<p><br></p>';
+    modo = 'visual'; cod.hidden = true; vis.hidden = false; tabV.className = 'on'; tabC.className = '';
+  }
+  tabC.addEventListener('click', irCodigo);
+  tabV.addEventListener('click', irVisual);
+  form.addEventListener('submit', function () { if (modo === 'visual') cod.value = vis.innerHTML; });
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-cmd]'), function (b) {
+    b.addEventListener('mousedown', function (e) { e.preventDefault(); foco(); document.execCommand(b.getAttribute('data-cmd'), false, null); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-block]'), function (b) {
+    b.addEventListener('mousedown', function (e) { e.preventDefault(); foco(); document.execCommand('formatBlock', false, b.getAttribute('data-block')); });
+  });
+  document.getElementById('bloco').addEventListener('change', function () { foco(); document.execCommand('formatBlock', false, this.value); });
+  document.getElementById('b-var').addEventListener('change', function () {
+    if (this.value) { foco(); document.execCommand('insertText', false, '{{' + this.value + '}}'); }
+    this.value = '';
+  });
+  document.getElementById('b-link').addEventListener('mousedown', function (e) {
+    e.preventDefault();
+    var url = window.prompt('Endereço do link (começa com https://):', 'https://');
+    if (url && /^(https?:\/\/|mailto:)/i.test(url.trim())) { foco(); document.execCommand('createLink', false, url.trim()); }
+  });
+
+  var radios = document.querySelectorAll('input[name=formato]');
+  Array.prototype.forEach.call(radios, function (r) {
+    r.addEventListener('change', function () { var t = this.value === 'texto'; blH.hidden = t; blT.hidden = !t; });
+  });
+})();
+{% endraw %}</script>
+{% endblock %}

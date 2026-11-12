@@ -68,8 +68,10 @@ def hunter_home(request: Request, ctx: Ctx = Depends(current_ctx)):
     from app.core.models import Company
 
     companies = ctx.db.scalar(select(func.count()).select_from(Company).where(Company.workspace_id == ws))
+    de_fora = ctx.db.scalar(select(func.count()).select_from(Contact).where(
+        Contact.workspace_id == ws, Contact.origem.in_(list(ORIGENS)))) or 0
     return render(request, "hunter_home.html", ctx, ativo="hunter", boxes=boxes, contacts=contacts,
-                  companies=companies)
+                  companies=companies, de_fora=de_fora)
 
 
 # ---------- caixas ----------
@@ -180,8 +182,12 @@ def delete_mailbox(mailbox_id: int, request: Request, ctx: Ctx = Depends(editor_
 
 
 # ---------- contatos ----------
-def _filters(q: str, caixa: int | None, tipo: str, minimo: int):
-    conds = [Contact.qtd_enviados + Contact.qtd_recebidos > 0]
+ORIGENS = {"lista_texto": "Lista de texto", "extensao_navegador": "Extensão do navegador"}
+
+
+def _filters(q: str, caixa: int | None, tipo: str, minimo: int, origem: str = ""):
+    # padrão: quem já trocou email com você (caixas); com 'origem', os contatos que vieram de lista ou da extensão
+    conds = [Contact.origem == origem] if origem in ORIGENS else [Contact.qtd_enviados + Contact.qtd_recebidos > 0]
     if q.strip():
         conds.append(Contact.email.icontains(q.strip(), autoescape=True)
                      | Contact.nome_completo.icontains(q.strip(), autoescape=True))
@@ -196,26 +202,26 @@ def _filters(q: str, caixa: int | None, tipo: str, minimo: int):
 
 @router.get("/contatos")
 def contatos(request: Request, q: str = "", caixa: int | None = None, tipo: str = "", minimo: int = 0,
-             pagina: int = 1, ctx: Ctx = Depends(current_ctx)):
-    conds = _filters(q, caixa, tipo, minimo)
+             pagina: int = 1, origem: str = "", ctx: Ctx = Depends(current_ctx)):
+    conds = _filters(q, caixa, tipo, minimo, origem)
     base = select(Contact).where(Contact.workspace_id == ctx.workspace_id, *conds)
     total = ctx.db.scalar(select(func.count()).select_from(base.subquery()))
     pagina = max(1, pagina)
     rows = ctx.db.scalars(base.order_by(Contact.relationship_score.desc().nullslast(), Contact.id)
                           .limit(PAGE).offset((pagina - 1) * PAGE)).all()
     caixas_ws = ctx.db.scalars(select(MailboxAccount).where(MailboxAccount.workspace_id == ctx.workspace_id)).all()
-    keep = {k: v for k, v in {"q": q, "caixa": caixa or "", "tipo": tipo, "minimo": minimo or ""}.items() if v != ""}
+    keep = {k: v for k, v in {"q": q, "caixa": caixa or "", "tipo": tipo, "minimo": minimo or "", "origem": origem}.items() if v != ""}
     return render(request, "hunter_contatos.html", ctx, ativo="hunter", rows=rows, total=total, pagina=pagina,
-                  paginas=max(1, -(-total // PAGE)), caixas=caixas_ws, f={"q": q, "caixa": caixa, "tipo": tipo, "minimo": minimo},
-                  qs=urlencode(keep))
+                  paginas=max(1, -(-total // PAGE)), caixas=caixas_ws, f={"q": q, "caixa": caixa, "tipo": tipo, "minimo": minimo, "origem": origem},
+                  origens=ORIGENS, qs=urlencode(keep))
 
 
 @router.get("/contatos.csv")
-def contatos_csv(q: str = "", caixa: int | None = None, tipo: str = "", minimo: int = 0,
+def contatos_csv(q: str = "", caixa: int | None = None, tipo: str = "", minimo: int = 0, origem: str = "",
                  ctx: Ctx = Depends(current_ctx)):
     header = ["nome_completo", "email", "cargo", "telefone", "site", "dominio_tipo", "qtd_enviados",
               "qtd_recebidos", "ultima_interacao", "nota_relacionamento"]
-    stmt = (select(Contact).where(Contact.workspace_id == ctx.workspace_id, *_filters(q, caixa, tipo, minimo))
+    stmt = (select(Contact).where(Contact.workspace_id == ctx.workspace_id, *_filters(q, caixa, tipo, minimo, origem))
             .order_by(Contact.relationship_score.desc().nullslast(), Contact.id))
     rows = ([c.nome_completo, c.email, c.cargo, c.telefone, c.site, c.dominio_tipo, c.qtd_enviados,
              c.qtd_recebidos, c.ultima_interacao.date().isoformat() if c.ultima_interacao else "",

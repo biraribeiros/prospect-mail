@@ -10,6 +10,7 @@
   <input type="text" name="q" value="{{ f.q }}" placeholder="Buscar por nome, email ou domínio" style="max-width:280px">
   <select name="caixa"><option value="">Todas as caixas</option>{% for c in caixas %}<option value="{{ c.id }}" {{ 'selected' if f.caixa == c.id }}>{{ c.nome }}</option>{% endfor %}</select>
   <select name="tipo"><option value="">Qualquer domínio</option><option value="corporativo" {{ 'selected' if f.tipo == 'corporativo' }}>Corporativo</option><option value="pessoal" {{ 'selected' if f.tipo == 'pessoal' }}>Pessoal (gmail, hotmail…)</option></select>
+  <select name="origem"><option value="">Vindos das caixas</option>{% for k, v in origens.items() %}<option value="{{ k }}" {{ 'selected' if f.origem == k }}>{{ v }}</option>{% endfor %}</select>
   <select name="minimo"><option value="0">Qualquer nota</option>{% for n in (30, 50, 70) %}<option value="{{ n }}" {{ 'selected' if f.minimo == n }}>Nota ≥ {{ n }}</option>{% endfor %}</select>
   <button class="btn primary">Filtrar</button>
 </form>
@@ -24,7 +25,7 @@
     <td>{{ c.ultima_interacao.strftime("%d/%m/%Y") if c.ultima_interacao else "—" }}</td>
   </tr>
   {% else %}
-  <tr><td colspan="5">Nenhum contato com esses filtros. Adicione uma <a href="/hunter/caixas">caixa de email</a> para começar.</td></tr>
+  <tr><td colspan="5">Nenhum contato com esses filtros. Adicione uma <a href="/hunter/caixas">caixa de email</a>, <a href="/hunter/lista">importe uma lista</a> ou use a <a href="/hunter/extensao">extensão do navegador</a>.</td></tr>
   {% endfor %}
 </table>
 {% if paginas > 1 %}

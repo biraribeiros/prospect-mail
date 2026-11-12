@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Duplicados · Prospector{% endblock %}
+{% block content %}
+<p><a href="/hunter">← Hunter</a></p>
+<h1>Sem duplicados</h1>
+<p class="sub">Uma empresa vira um único registro, venha de onde vier (CNPJ, Maps, site). Empresas com CNPJs diferentes nunca são juntadas. Toda mesclagem pode ser desfeita.</p>
+<div class="grid">
+  <div class="card"><div class="num">{{ merges|length }}</div><h3>Mesclagens</h3><p>Empresas repetidas que foram unificadas.</p></div>
+  <div class="card"><div class="num">{{ contadores }}</div><h3>Contadores detectados</h3><p>Escritórios de contabilidade, que não recebem prospecção.</p></div>
+  <div class="card"><div class="num">{{ bloqueados }}</div><h3>Contatos bloqueados</h3><p>Bloqueados para envio (contador, etc.).</p></div>
+</div>
+<div class="actions" style="margin:12px 0">
+  {% if ctx.can_edit %}<form method="post" action="/hunter/duplicados/rodar" style="display:inline"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn primary">Unificar agora</button></form>{% endif %}
+  <a class="btn" href="/hunter/exportar/consolidada.csv">Baixar lista consolidada (CSV)</a>
+</div>
+<table>
+  <tr><th>Empresa mantida</th><th>Empresa absorvida</th><th>Motivo</th><th>Quando</th><th></th></tr>
+  {% for m, c in merges %}
+  <tr><td><a href="/hunter/empresas/{{ m.survivor_id }}">{{ (surv[m.survivor_id].nome_fantasia or surv[m.survivor_id].razao_social) if surv.get(m.survivor_id) else m.survivor_id }}</a></td>
+    <td>{{ c.nome_fantasia or c.razao_social or c.dominio }}</td><td>{{ m.motivo|replace("_", " + ") }}</td><td>{{ m.criado_em.strftime("%d/%m/%Y %H:%M") }}</td>
+    <td>{% if m.desfeito_em %}<span class="tag">desfeita</span>{% elif ctx.can_edit %}<form method="post" action="/hunter/duplicados/{{ m.id }}/desfazer"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn small">Desfazer</button></form>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="5">Nenhuma mesclagem ainda.</td></tr>{% endfor %}
+</table>
+<h2>Execuções recentes</h2>
+{% include "_jobs_table.html" %}
+{% endblock %}

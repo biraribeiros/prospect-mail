@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Campanhas · Prospector{% endblock %}
+{% block content %}
+<p><a href="/disparo">← Disparo</a></p>
+<div class="row" style="justify-content:space-between">
+  <div><h1>Campanhas</h1><p class="sub">Você escreve a mensagem, escolhe quem recebe, aprova, e o sistema envia devagar e com segurança.</p></div>
+  {% if ctx.can_edit %}<a class="btn primary" href="/disparo/campanhas/nova">Nova campanha</a>{% endif %}
+</div>
+<table>
+  <tr><th>Campanha</th><th>Assunto</th><th>Rascunho</th><th>Aprovadas</th><th>Agendadas</th><th>Enviadas</th><th>Bloqueadas</th></tr>
+  {% for c in cs %}
+  {% set n = cont.get(c.id, {}) %}
+  <tr>
+    <td><a href="/disparo/campanhas/{{ c.id }}">{{ c.nome }}</a><br><span class="hint">{{ c.criado_em.strftime("%d/%m/%Y") }} · {{ "HTML" if c.formato == "html" else "texto" }}</span></td>
+    <td>{{ c.assunto or "—" }}</td>
+    <td>{{ n.get("rascunho", 0) }}</td><td>{{ n.get("aprovada", 0) }}</td><td>{{ n.get("agendada", 0) }}</td><td>{{ n.get("enviada", 0) }}</td><td>{{ n.get("bloqueada", 0) }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="7">Nenhuma campanha ainda. Clique em <b>Nova campanha</b>.</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

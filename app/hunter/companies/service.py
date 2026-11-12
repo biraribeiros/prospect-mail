@@ -12,6 +12,7 @@ from app.core.compliance import create_compliance_record
 from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.core.jobs import finish_job, start_job
+from app.core.limits import LimitExceeded, assert_job_allowed
 from app.core.models import Company, Contact, IcpProfile, JobRun, Workspace
 from app.core.provenance import record_evidence
 from app.hunter.companies import cnpj as cnpj_mod
@@ -21,7 +22,7 @@ from app.hunter.companies.fetch import SafeFetcher
 from app.hunter.mailbox.noise import NoiseFilter, domain_of, dominio_tipo
 
 FONTE_SITE = "crawler_site"
-EXPECTED_ERRORS = (cnpj_mod.CnpjError, places_mod.PlacesError)
+EXPECTED_ERRORS = (cnpj_mod.CnpjError, places_mod.PlacesError, LimitExceeded)
 
 
 # ---------- acompanhamento ----------
@@ -50,6 +51,10 @@ def _mark_failed(job_id: int, message: str) -> None:
 
 
 def run_tracked(session: Session, ws: int, tipo: str, params: dict, work: Callable[[Callable], dict]) -> dict:
+    try:
+        assert_job_allowed(session, ws, tipo)  # limites do workspace (gasto mensal, contatos)
+    except LimitExceeded as e:
+        return {"job_id": None, "repetido": False, "erro": str(e)}
     job_id, created = start_job(session, tipo, params, ws)
     if not created:
         return {"job_id": job_id, "repetido": True}
@@ -101,7 +106,7 @@ def run_places(session: Session, ws: int, icp: IcpProfile, client: places_mod.Pl
 # ---------- sites ----------
 def crawl_targets(session: Session, ws: int, icp: IcpProfile | None, limit: int) -> list[Company]:
     stmt = select(Company).where(Company.workspace_id == ws, Company.site.is_not(None), Company.site != "",
-                                 Company.site_status == "nao_lido")
+                                 Company.site_status == "nao_lido", Company.merged_into_id.is_(None))
     if icp is not None:
         if icp.ufs:
             stmt = stmt.where(Company.uf.in_([u.upper() for u in icp.ufs]))

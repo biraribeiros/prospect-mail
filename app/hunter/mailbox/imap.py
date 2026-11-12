@@ -60,6 +60,8 @@ class ImapAdapter(MailboxReader):
                 continue
             name = m.group("name").strip().strip('"')
             flags = m.group("flags").lower()
+            if "\\all" in flags:  # Gmail: "Todos os e-mails" já contém recebidos, enviados e arquivados (sem spam/lixeira)
+                return [(name, None)]
             if "\\sent" in flags or name.lower() in SENT_NAMES:
                 out.append((name, "enviado"))
         return out

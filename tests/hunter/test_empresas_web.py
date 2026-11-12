@@ -163,8 +163,8 @@ def novo_job(db, ws, tipo="coleta_places", status="concluido", **cont):
 def test_lista_recente_e_detalhe_do_job(logged, db, world):
     j = novo_job(db, world.a, criadas=7)
     html = logged.get("/hunter/coleta").text
-    assert "Google Places" in html and "7 empresas novas" in html and "US$ 0.050" in html
-    assert "7 empresas novas" in logged.get("/hunter/coleta/recentes").text
+    assert "Google Places" in html and "7 criadas" in html and "US$ 0.050" in html
+    assert "7 criadas" in logged.get("/hunter/coleta/recentes").text
     page = logged.get(f"/hunter/coleta/{j.id}").text
     assert "EventSource" in page and f"/hunter/coleta/{j.id}/eventos" in page
 

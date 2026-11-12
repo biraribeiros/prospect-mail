@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Sinais de oportunidade · Prospector{% endblock %}
+{% block content %}
+<p><a href="/hunter">← Hunter</a></p>
+<h1>Sinais de oportunidade</h1>
+<p class="sub">Momentos de compra encontrados: vagas, expansões, lançamentos, mudanças de diretoria. Todo sinal tem link para a fonte. <a href="/hunter/coleta">Buscar novos sinais</a></p>
+<form method="get" class="row">
+  <select name="tipo" onchange="this.form.submit()"><option value="">Todos os tipos</option>
+  {% for t in tipos %}<option value="{{ t }}" {{ "selected" if t == tipo }}>{{ t|replace("_", " ") }}</option>{% endfor %}</select>
+</form>
+<table>
+  <tr><th>Empresa</th><th>Tipo</th><th>O que foi encontrado</th><th>Fonte</th><th>Confiança</th><th>Válido até</th></tr>
+  {% for g, c in rows %}
+  <tr><td><a href="/hunter/empresas/{{ c.id }}">{{ c.nome_fantasia or c.razao_social or c.dominio }}</a></td>
+    <td>{{ g.tipo|replace("_", " ") }}{% if g.polaridade == "negativo" %} <span class="tag">negativo</span>{% endif %}</td><td>{{ g.titulo }}</td>
+    <td><a href="{{ g.url|safe_url }}" target="_blank" rel="noopener noreferrer nofollow">{{ g.fonte|replace("_", " ") }}</a></td>
+    <td>{{ "%.0f"|format(g.confianca|float * 100) }}%</td><td>{{ g.valido_ate.strftime("%d/%m/%Y") if g.valido_ate else "—" }}</td></tr>
+  {% else %}<tr><td colspan="6">Nenhum sinal ainda. Use “Buscar sinais” na coleta.</td></tr>{% endfor %}
+</table>
+{% endblock %}

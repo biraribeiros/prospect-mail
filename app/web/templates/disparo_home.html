@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Disparo · Prospector{% endblock %}
+{% block content %}
+<h1>Disparo</h1>
+<p class="sub">Escreve, você aprova, e o sistema envia devagar e com segurança. Em modo seguro, tudo vai para o Mailpit (nenhum email real sai).</p>
+{% if pausa %}<div class="msg err"><b>Envio PAUSADO pelo disjuntor.</b> {{ pausa.motivo }}
+  {% if ctx.papel == "admin" %}<form method="post" action="/disparo/liberar" style="display:inline"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn small">Liberar envio</button></form>{% endif %}</div>{% endif %}
+<div class="grid">
+  <a class="card" href="/disparo/campanhas" style="text-decoration:none;color:inherit"><h3>Campanhas</h3><p>Escreva a mensagem num editor (Visual ou Código), escolha quem recebe e aprove.</p></a>
+  <a class="card" href="/disparo/mensagens" style="text-decoration:none;color:inherit"><div class="num">{{ fila.get("rascunho", 0) }}</div><h3>Aguardando aprovação</h3><p>Mensagens escritas, esperando você.</p></a>
+  <div class="card"><div class="num">{{ fila.get("agendada", 0) }}</div><h3>Agendadas</h3><p>{{ fila.get("aprovada", 0) }} aprovadas esperando horário.</p></div>
+  <div class="card"><div class="num">{{ fila.get("enviada", 0) }}</div><h3>Enviadas</h3><p>Últimas 24 h: {{ enviadas24 }} (bounces: {{ bounces24 }}, {{ "%.1f"|format(taxa24 * 100) }}%).</p></div>
+  <a class="card" href="/disparo/respostas" style="text-decoration:none;color:inherit"><h3>Respostas e CRM</h3><p>Interessados, descadastros e oportunidades.</p></a>
+</div>
+
+<h2>Caixas de envio</h2>
+<p class="hint">Domínios principais (onde você recebe email) <b>nunca</b> enviam prospecção: {{ principais|join(", ") or "nenhum detectado ainda" }}. Use domínios secundários.
+  Aquecimento: {{ plano|join(" / ") }} envios por dia nas semanas 1 a 4.</p>
+<table>
+  <tr><th>Caixa</th><th>Domínio e DNS</th><th>Hoje</th><th></th></tr>
+  {% for mb in boxes %}{% set d = domains.get(mb.sender_domain_id) %}
+  <tr><td><b>{{ mb.nome }}</b><br><span class="hint">{{ info[mb.id][2] }}{% if mb.pausada %} · pausada{% endif %}</span></td>
+    <td>{% if d %}{{ d.nome }}<br>
+      {% for n, v in [("SPF", d.spf_ok), ("DKIM", d.dkim_ok), ("DMARC", d.dmarc_ok), ("DNS reverso", d.rdns_ok)] %}<span class="tag">{{ n }} {{ "✔" if v else "✘" }}</span> {% endfor %}
+      {% for p in (d.detalhes or {}).get("problemas", []) %}<br><span class="hint">{{ p }}</span>{% endfor %}
+      {% if ctx.can_edit %}<form method="post" action="/disparo/dominios/{{ d.id }}/checar" class="row" style="margin-top:6px">
+        <input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><input type="text" name="selector" value="{{ d.dkim_selector or "" }}" placeholder="seletor DKIM (ex.: default)" style="max-width:200px">
+        <button class="btn small">Conferir DNS</button></form>{% endif %}{% endif %}</td>
+    <td>{{ info[mb.id][0] }} / {{ info[mb.id][1] }}</td>
+    <td>{% if ctx.can_edit %}<form method="post" action="/disparo/caixas/{{ mb.id }}/pausar" style="display:inline"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn small">{{ "Reativar" if mb.pausada else "Pausar" }}</button></form>
+      <form method="post" action="/disparo/caixas/{{ mb.id }}/excluir" style="display:inline" onsubmit="return confirm('Remover esta caixa?')"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn small danger">Remover</button></form>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="4">Nenhuma caixa de envio ainda.</td></tr>{% endfor %}
+</table>
+
+{% if ctx.can_edit %}
+<h2>Nova caixa de envio</h2>
+<form method="post" action="/disparo/caixas" class="card">
+  <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+  <label for="preset">Tipo</label><select id="preset" name="preset"><option value="outro">SMTP (cPanel/Plesk/outro)</option><option value="gmail">Google Workspace (SMTP)</option><option value="microsoft">Microsoft 365 (SMTP)</option></select>
+  <label for="email">Endereço de email (domínio secundário)</label><input type="text" id="email" name="email" placeholder="contato@seudominio-secundario.com.br" required>
+  <label for="from_name">Nome que aparece como remetente</label><input type="text" id="from_name" name="from_name">
+  <label for="host">Servidor SMTP (deixe em branco para Google/Microsoft)</label><input type="text" id="host" name="host" placeholder="mail.seudominio.com.br">
+  <label for="port">Porta</label><input type="text" id="port" name="port" value="587">
+  <label for="security">Segurança</label><select id="security" name="security"><option value="starttls">STARTTLS (587)</option><option value="ssl">SSL (465)</option></select>
+  <label for="user">Usuário (se diferente do email)</label><input type="text" id="user" name="user">
+  <label for="password">Senha</label><input type="password" id="password" name="password" autocomplete="new-password" required>
+  <label for="selector">Seletor DKIM</label><input type="text" id="selector" name="selector" placeholder="default">
+  <label for="limite">Limite diário manual (opcional, só pode reduzir o plano de aquecimento)</label><input type="text" id="limite" name="limite" value="0">
+  <div class="actions"><button class="btn primary">Cadastrar caixa</button></div>
+</form>
+<form method="post" action="/disparo/despachar" class="actions" style="margin-top:12px"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+  <button class="btn">Agendar e enviar agora</button> <span class="hint">O sistema também faz isso sozinho a cada minuto.</span></form>
+{% endif %}
+
+<h2>Próximos envios</h2>
+<table><tr><th>Quando (UTC)</th><th>Para</th><th>Assunto</th></tr>
+{% for m, c in prox %}<tr><td>{{ m.agendada_para.strftime("%d/%m %H:%M") }}</td><td>{{ c.email }}</td><td>{{ m.assunto }}</td></tr>{% else %}<tr><td colspan="3">Nada agendado.</td></tr>{% endfor %}</table>
+{% endblock %}

@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     retention_days: int = 730
     smtp_host: str = "localhost"
     smtp_port: int = 1025
+    smtp_security: str = "none"  # none | starttls | ssl  (email interno: alertas, resumo semanal, Trello)
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "alertas@prospector.local"
     # IA (Claude) — usada só como reserva na leitura de assinaturas; sem chave, fica desligada.
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-haiku-5-5"
@@ -43,6 +47,29 @@ class Settings(BaseSettings):
     crawl_delay_s: float = 1.0
     crawl_timeout_s: float = 10.0
     crawl_max_pages: int = 5
+    # Etapa 2b — sinais. Modelos de URL de feeds RSS de vagas separados por vírgula; {q} = nome da empresa.
+    signals_job_rss_urls: str = ""
+    # Etapa 4 — validação de emails: reacher | millionverifier | zerobounce | nenhum
+    verifier_provider: str = "nenhum"
+    verifier_api_key: str = ""
+    reacher_url: str = ""
+    verifier_cache_days: int = 90
+    verifier_catchall_days: int = 7
+    verifier_max_parallel: int = 3
+    # Etapa 6 — envio
+    unsubscribe_secret: str = ""  # se vazio, usa SECRET_KEY
+    public_base_url: str = "http://localhost:8000"
+    rspamd_url: str = "http://rspamd:11333"
+    breaker_bounce_rate: float = 0.03
+    breaker_min_sent: int = 20
+    # Etapa 8 — CRM externo (webhook). Vazio = os eventos ficam registrados como "sem_destino".
+    crm_webhook_url: str = ""
+    crm_webhook_secret: str = ""
+    # Trello sem API: endereço de "enviar email para o quadro" (Trello > menu do quadro > Mais > Email para o quadro). É secreto.
+    trello_board_email: str = ""
+    # Etapa 10
+    backup_dir: str = "data/backups"
+    job_stuck_hours: int = 8
 
     @property
     def dry_run(self) -> bool:

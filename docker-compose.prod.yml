@@ -1,0 +1,33 @@
+# Produção: use junto com o arquivo principal ->  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Sem recarga automática, sem montar o código-fonte, HTTPS automático pelo Caddy e portas internas fechadas.
+services:
+  app:
+    command: ["sh", "docker/entrypoint.prod.sh"]
+    volumes:
+      - ./data:/srv/data
+    environment:
+      APP_ENV: prod
+      SESSION_HTTPS_ONLY: "true"
+    ports: !reset []
+  worker:
+    volumes:
+      - ./data:/srv/data
+    environment:
+      APP_ENV: prod
+  mailpit:
+    profiles: ["dev"]          # Mailpit só em desenvolvimento
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    environment:
+      DOMINIO: ${DOMINIO:?defina DOMINIO no .env (ex.: prospector.suaagencia.com.br)}
+    depends_on:
+      - app
+volumes:
+  caddy_data:

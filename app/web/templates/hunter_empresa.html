@@ -13,6 +13,11 @@
   <div class="card"><h3>Contatos ({{ contatos|length }})</h3>
     {% for p in contatos %}<p>{{ p.nome_completo or p.email }}{% if p.cargo %} — {{ p.cargo }}{% endif %}{% if p.email and p.nome_completo %}<br><span class="hint">{{ p.email }}</span>{% endif %}</p>{% else %}<p>Nenhum contato ainda.</p>{% endfor %}</div>
 </div>
+{% if sinais %}<h2>Sinais de oportunidade</h2>
+<table><tr><th>Tipo</th><th>O que foi encontrado</th><th>Fonte</th><th>Confiança</th><th>Válido até</th></tr>
+{% for g in sinais %}<tr><td>{{ g.tipo|replace("_", " ") }}</td><td>{{ g.titulo }}</td>
+<td><a href="{{ g.url|safe_url }}" target="_blank" rel="noopener noreferrer nofollow">{{ g.fonte|replace("_", " ") }}</a></td>
+<td>{{ "%.0f"|format(g.confianca|float * 100) }}%</td><td>{{ g.valido_ate.strftime("%d/%m/%Y") if g.valido_ate else "—" }}</td></tr>{% endfor %}</table>{% endif %}
 <h2>De onde vem cada dado</h2>
 <table>
   <tr><th>Campo</th><th>Valor</th><th>Fonte</th><th>Confiança</th><th>Quando</th></tr>

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Mensagens · Prospector{% endblock %}
+{% block content %}
+<p><a href="/disparo">← Disparo</a></p>
+<h1>Mensagens para aprovar</h1>
+<p class="sub">Cada sequência tem 3 emails (primeiro contato, seguimento no dia 4, último toque no dia 10) na mesma conversa. Leia, ajuste e aprove em lote. Todas as mensagens usam só fatos comprovados da hipótese aprovada.</p>
+{% if ctx.can_edit %}<form method="post" action="/disparo/mensagens/gerar" style="margin-bottom:12px"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+  <button class="btn primary">Escrever mensagens das hipóteses aprovadas</button> <a class="btn" href="/disparo/modelos">Modelos de texto</a></form>{% endif %}
+<form method="post" action="/disparo/mensagens/decidir">
+  <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+  {% for m, ct, co in firsts %}
+  <div class="card" style="margin-bottom:12px">
+    <label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" name="sel" value="{{ m.id }}"> {{ ct.primeiro_nome or ct.email }} · {{ (co.nome_fantasia or co.razao_social) if co else "" }} <span class="hint">({{ ct.email }})</span></label>
+    {% if m.status == "bloqueada" %}<div class="msg err">Bloqueada: {{ m.motivo }}</div>{% endif %}
+    <p class="hint">Nota de spam: {{ m.spam_score if m.spam_score is not none else "—" }} (menor que 5 passa)</p>
+    {% for p in seq.get(m.id, []) %}
+    <details {{ "open" if p.passo == 1 }}><summary><b>Passo {{ p.passo }}</b> · {{ p.objetivo|replace("_", " ") }} · dia {{ [0,0,4,10][p.passo] }}</summary>
+      <input type="text" name="assunto_{{ p.id }}" value="{{ p.assunto }}">
+      <textarea name="corpo_{{ p.id }}" rows="7" style="width:100%">{{ p.corpo }}</textarea>
+      {% if p.passo > 1 and p.motivo %}<span class="hint">{{ p.motivo }}</span>{% endif %}</details>
+    {% endfor %}
+  </div>
+  {% else %}<p>Nenhuma mensagem aguardando. Aprove hipóteses em <a href="/inteligencia/hipoteses">Inteligência</a> e clique em “Escrever mensagens”.</p>{% endfor %}
+  {% if firsts and ctx.papel in ("admin", "aprovador") %}
+  <div class="actions"><button class="btn primary" name="acao" value="aprovar">Aprovar marcadas</button>
+    <button class="btn danger" name="acao" value="descartar">Descartar marcadas</button></div>{% endif %}
+</form>
+{% endblock %}

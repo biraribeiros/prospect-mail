@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Ofertas · Prospector{% endblock %}
+{% block content %}
+<p><a href="/inteligencia">← Inteligência</a></p>
+<h1>Ofertas da agência</h1>
+<p class="sub">O que você vende e para qual momento de compra. A IA nunca inventa cases: só usa o que está aqui.</p>
+{% for e in errors %}<div class="msg err">{{ e }}</div>{% endfor %}
+{% if ctx.can_edit %}
+<form method="post" action="/inteligencia/ofertas/modelos" style="margin-bottom:12px"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+  <button class="btn">Carregar modelos de oferta (para editar)</button></form>
+{% endif %}
+<table>
+  <tr><th>Oferta</th><th>Relevante quando há…</th><th>Tags</th><th>Cases</th><th></th></tr>
+  {% for o in rows %}
+  <tr><td><b>{{ o.nome }}</b>{% if not o.ativo %} <span class="tag">inativa</span>{% endif %}<br><span class="hint">{{ o.descricao }}{% if o.faixa_preco %} · {{ o.faixa_preco }}{% endif %}</span></td>
+    <td>{{ o.tipos_sinal|join(", ") }}</td><td>{{ o.tags|join(", ") }}</td><td>{{ o.cases|length }}</td>
+    <td>{% if ctx.can_edit %}<a class="btn small" href="/inteligencia/ofertas?editar={{ o.id }}">Editar</a>
+      <form method="post" action="/inteligencia/ofertas/{{ o.id }}/excluir" style="display:inline" onsubmit="return confirm('Excluir esta oferta?')"><input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><button class="btn small danger">Excluir</button></form>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="5">Nenhuma oferta ainda.</td></tr>{% endfor %}
+</table>
+{% if ctx.can_edit %}
+<h2>{{ "Editar oferta" if edit else "Nova oferta" }}</h2>
+<form method="post" action="/inteligencia/ofertas" class="card">
+  <input type="hidden" name="csrf_token" value="{{ csrf(request) }}"><input type="hidden" name="id" value="{{ edit.id if edit else "" }}">
+  <label for="nome">Nome</label><input type="text" id="nome" name="nome" value="{{ edit.nome if edit else "" }}" required>
+  <label for="descricao">Descrição</label><textarea id="descricao" name="descricao" rows="2">{{ edit.descricao if edit else "" }}</textarea>
+  <label for="faixa_preco">Faixa de preço</label><input type="text" id="faixa_preco" name="faixa_preco" value="{{ edit.faixa_preco or "" if edit else "" }}">
+  <label>Relevante quando a empresa tiver…</label>
+  <div>{% for t in tipos %}<label style="display:inline-flex;gap:4px;font-weight:400;margin-right:12px"><input type="checkbox" name="tipos_sinal" value="{{ t }}" {{ "checked" if edit and t in edit.tipos_sinal }}> {{ t|replace("_", " ") }}</label>{% endfor %}</div>
+  <label for="tags">Tags (ligam a oferta às necessidades dos departamentos)</label><input type="text" id="tags" name="tags" value="{{ edit.tags|join(', ') if edit else "" }}" placeholder="video, branding">
+  <label for="departamentos">Só para estes departamentos (vazio = todos)</label><input type="text" id="departamentos" name="departamentos" value="{{ edit.departamentos|join(', ') if edit else "" }}">
+  <label for="cases">Cases reais (um por linha)</label><textarea id="cases" name="cases" rows="3">{{ edit.cases|join('\n') if edit else "" }}</textarea>
+  <label style="display:inline-flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" name="ativo" value="sim" {{ "checked" if (not edit) or edit.ativo }}> Oferta ativa</label>
+  <div class="actions"><button class="btn primary">Salvar</button></div>
+</form>
+{% endif %}
+{% endblock %}

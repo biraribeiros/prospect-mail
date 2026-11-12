@@ -57,6 +57,16 @@
     <label for="s_lim">Máximo de sites</label><input type="text" id="s_lim" name="limite" value="200">
     {% if ctx.can_edit %}<div class="actions"><button class="btn primary">Ler sites</button></div>{% endif %}
   </form>
+
+  <form class="card" method="post" action="/hunter/coleta/sinais">
+    <h3>4. Sinais de oportunidade</h3>
+    <p>Procura vagas abertas (página "trabalhe conosco") e notícias de expansão, inauguração, lançamento e mudança de diretoria. Só grava o que tem link verificável. <a href="/hunter/sinais">Ver sinais</a></p>
+    <input type="hidden" name="csrf_token" value="{{ csrf(request) }}">
+    <label for="g_icp">Perfil (opcional)</label>
+    <select id="g_icp" name="icp_id"><option value="">Todas as empresas</option>{% for i in icps %}<option value="{{ i.id }}">{{ i.nome }}</option>{% endfor %}</select>
+    <label for="g_lim">Máximo de empresas</label><input type="text" id="g_lim" name="limite" value="200">
+    {% if ctx.can_edit %}<div class="actions"><button class="btn primary">Buscar sinais</button></div>{% endif %}
+  </form>
 </div>
 
 <h2>Coletas recentes</h2>

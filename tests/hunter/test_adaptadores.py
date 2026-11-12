@@ -101,6 +101,18 @@ def test_imap_le_inbox_e_enviados_somente_leitura():
     assert fake.criterios[0] == ("SINCE", "01-Nov-2026") and fake.closed
 
 
+def test_imap_gmail_le_so_todos_os_emails_sem_spam_nem_lixeira():
+    class GmailImap(FakeImap):
+        def list(self):
+            return "OK", [b'(\\HasNoChildren) "/" "INBOX"', b'(\\HasNoChildren \\All) "/" "[Gmail]/All Mail"',
+                          b'(\\HasNoChildren \\Sent) "/" "[Gmail]/Sent Mail"', b'(\\HasNoChildren \\Junk) "/" "[Gmail]/Spam"']
+
+    fake = GmailImap({"[Gmail]/All Mail": [eml("a1"), eml("a2", de=OWN, para="ana@x.com.br")]})
+    msgs = list(ImapAdapter("imap.gmail.com", 993, "u", "p", connection_factory=lambda: fake).scan())
+    assert [m.message_id for m in msgs] == ["a1", "a2"]
+    assert fake.selected == ["[Gmail]/All Mail"]  # não repete INBOX/Enviados, nunca lê Spam
+
+
 def test_imap_testar_conexao_e_data():
     fake = FakeImap({})
     ImapAdapter("h", 993, "u", "p", connection_factory=lambda: fake).test_connection()

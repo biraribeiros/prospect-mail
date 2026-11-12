@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Date,
     ForeignKey,
@@ -176,6 +177,9 @@ class Company(Base):
     endereco: Mapped[str | None] = mapped_column(Text)
     site_status: Mapped[str] = mapped_column(Text, default="nao_lido", server_default="nao_lido")
     site_lido_em: Mapped[datetime | None] = mapped_column(TS)
+    # Etapa 3 (duplicados)
+    contador: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
+    merged_into_id: Mapped[int | None] = mapped_column(ForeignKey("company.id", ondelete="SET NULL"), index=True)
     criado_em: Mapped[datetime] = mapped_column(TS, server_default=func.now())
 
 
@@ -217,6 +221,16 @@ class Contact(Base):
     ultima_interacao: Mapped[datetime | None] = mapped_column(TS)
     qtd_enviados: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
     qtd_recebidos: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
+    # Etapas 3 a 5a
+    bloqueado_envio: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
+    bloqueio_motivo: Mapped[str | None] = mapped_column(Text)
+    nome_origem: Mapped[str | None] = mapped_column(Text)
+    verificado_em: Mapped[datetime | None] = mapped_column(TS)
+    nota_empresa: Mapped[int | None] = mapped_column(Integer)
+    nota_contato: Mapped[int | None] = mapped_column(Integer)
+    nota_email: Mapped[int | None] = mapped_column(Integer)
+    nota_oportunidade: Mapped[int | None] = mapped_column(Integer)
+    nota_final: Mapped[int | None] = mapped_column(Integer)
     criado_em: Mapped[datetime] = mapped_column(TS, server_default=func.now())
 
 
@@ -225,7 +239,7 @@ class MailboxAccount(Base):
 
     __tablename__ = "mailbox_account"
     __table_args__ = (
-        CheckConstraint("tipo in ('gmail','graph','imap','mbox')", name="ck_mailbox_tipo"),
+        CheckConstraint("tipo in ('gmail','graph','imap','mbox','smtp')", name="ck_mailbox_tipo"),
         CheckConstraint("uso in ('hunter','envio','ambos')", name="ck_mailbox_uso"),
     )
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -239,6 +253,8 @@ class MailboxAccount(Base):
     fase_aquecimento: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
     saude: Mapped[str] = mapped_column(Text, default="ok", server_default="ok")
     cursor: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=EMPTY_OBJ)
+    sender_domain_id: Mapped[int | None] = mapped_column(ForeignKey("sender_domain.id", ondelete="SET NULL"))
+    pausada: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
     ultima_varredura: Mapped[datetime | None] = mapped_column(TS)
     criado_em: Mapped[datetime] = mapped_column(TS, server_default=func.now())
 
@@ -305,3 +321,7 @@ class ContactRole(Base):
     papel: Mapped[str] = mapped_column(Text)
     confianca: Mapped[float] = mapped_column(Numeric(4, 3), default=0.5)
     fonte: Mapped[str | None] = mapped_column(Text)
+
+
+# ---------------- Etapas 2b a 9 ficam em models_etapas.py (importado aqui no fim) ----------------
+from app.core.models_etapas import *  # noqa: E402,F401,F403

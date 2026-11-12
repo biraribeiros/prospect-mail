@@ -12,7 +12,7 @@
 <header class="top"><div class="bar">
   <a class="logo" href="/">Prospector</a>
   <nav>
-    {% set itens = [("hunter","Hunter"),("filtro","Filtro"),("inteligencia","Inteligência"),("disparo","Disparo"),("configuracoes","Configurações")] %}
+    {% set itens = [("hunter","Hunter"),("filtro","Filtro"),("inteligencia","Inteligência"),("disparo","Disparo"),("metricas","Métricas"),("configuracoes","Configurações")] %}
     {% for slug, nome in itens %}<a href="/{{ slug }}" class="{{ 'on' if ativo == slug }}">{{ nome }}</a>{% endfor %}
   </nav>
   <div class="who">

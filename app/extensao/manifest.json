@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Prospector - coletor de emails",
+  "version": "1.0.0",
+  "description": "Anota os emails das paginas que voce visita e envia direto para o seu Prospector.",
+  "permissions": ["storage", "activeTab", "scripting", "alarms"],
+  "host_permissions": ["http://localhost:8000/*", "http://127.0.0.1:8000/*"],
+  "optional_host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_popup": "popup.html", "default_title": "Prospector" }
+}

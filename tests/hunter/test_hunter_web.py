@@ -43,9 +43,9 @@ def rodar_job(mailbox_id):
 
 
 def test_paginas_do_hunter_abrem(logged):
-    for p in ("/hunter", "/hunter/caixas", "/hunter/contatos", "/hunter/ruido"):
+    for p in ("/hunter", "/hunter/caixas", "/hunter/contatos", "/hunter/ruido", "/hunter/sinais", "/hunter/duplicados"):
         assert logged.get(p).status_code == 200, p
-    assert "Em construção" in logged.get("/hunter").text  # empresas/sinais ainda não existem
+    assert "Em construção" not in logged.get("/hunter").text
 
 
 def test_upload_mbox_cria_caixa_enfileira_e_varre(logged, world, db, filas, tmp_path):
